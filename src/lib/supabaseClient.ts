@@ -1,5 +1,6 @@
 // lib/supabaseClient.ts
-import "react-native-url-polyfill/auto"; // required: supabase-js needs a URL polyfill in RN
+import "react-native-url-polyfill/auto";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 
@@ -12,14 +13,41 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
+// ── SSR-safe storage adapter ──
+// On web, Expo Router's static output renders on Node (no `window`).
+// Supabase's auth client reads storage at construction time, so it must
+// never touch window/localStorage/AsyncStorage during that server pass.
+const ssrSafeStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return null; // SSR pass — no-op
+      return window.localStorage.getItem(key);
+    }
+    return AsyncStorage.getItem(key);
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem(key, value);
+      return;
+    }
+    await AsyncStorage.setItem(key, value);
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return;
+      window.localStorage.removeItem(key);
+      return;
+    }
+    await AsyncStorage.removeItem(key);
+  },
+};
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    // AsyncStorage here is fine — this is Supabase's OWN internal session
-    // bookkeeping cache, separate from the tokens our apiClient uses.
-    // It's not the source of truth for our API calls (SecureStore is).
-    storage: AsyncStorage,
+    storage: ssrSafeStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // no browser redirect flow on native
+    detectSessionInUrl: false,
   },
 });

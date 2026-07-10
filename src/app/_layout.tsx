@@ -1,6 +1,21 @@
-import { Stack } from "expo-router";
-import "../global.css";
-
+// src/app/_layout.tsx
+import { Stack, router } from "expo-router";
+import { useEffect } from "react";
+import { AuthProvider } from "../contexts/SupabaseAuthContext";
+import { setOnAuthExpired } from "../lib/apiClient";
+import "../global.css"
 export default function RootLayout() {
-  return <Stack />;
+  useEffect(() => {
+    setOnAuthExpired(() => router.replace("/home"));
+  }, []);
+
+  return (
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </AuthProvider>
+  );
 }

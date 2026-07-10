@@ -1,4 +1,5 @@
 // lib/tokenStorage.ts
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 const ACCESS_KEY = "mc_access_token";
@@ -11,13 +12,45 @@ export interface StoredUser {
   [key: string]: unknown;
 }
 
+// ── Platform-aware storage adapter ──
+// Native (iOS/Android): expo-secure-store (encrypted keychain/keystore)
+// Web: localStorage (SecureStore has no web implementation — matches your
+// existing website's localStorage.setItem("accessToken", ...) behavior)
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return null; // SSR guard
+      return window.localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem(key, value);
+      return;
+    }
+    await SecureStore.setItemAsync(key, value);
+  },
+
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return;
+      window.localStorage.removeItem(key);
+      return;
+    }
+    await SecureStore.deleteItemAsync(key);
+  },
+};
+
 export const tokenStorage = {
   async getAccessToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(ACCESS_KEY);
+    return storage.getItem(ACCESS_KEY);
   },
 
   async getRefreshToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(REFRESH_KEY);
+    return storage.getItem(REFRESH_KEY);
   },
 
   async setTokens({
@@ -27,25 +60,25 @@ export const tokenStorage = {
     accessToken: string;
     refreshToken?: string;
   }): Promise<void> {
-    await SecureStore.setItemAsync(ACCESS_KEY, accessToken);
+    await storage.setItem(ACCESS_KEY, accessToken);
     if (refreshToken) {
-      await SecureStore.setItemAsync(REFRESH_KEY, refreshToken);
+      await storage.setItem(REFRESH_KEY, refreshToken);
     }
   },
 
   async clearTokens(): Promise<void> {
-    await SecureStore.deleteItemAsync(ACCESS_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_KEY);
-    await SecureStore.deleteItemAsync(USER_KEY);
+    await storage.deleteItem(ACCESS_KEY);
+    await storage.deleteItem(REFRESH_KEY);
+    await storage.deleteItem(USER_KEY);
   },
 
   // Display-only cache — never used for authorization decisions.
   async setUser(user: StoredUser): Promise<void> {
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+    await storage.setItem(USER_KEY, JSON.stringify(user));
   },
 
   async getUser(): Promise<StoredUser | null> {
-    const raw = await SecureStore.getItemAsync(USER_KEY);
+    const raw = await storage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as StoredUser) : null;
   },
 };
