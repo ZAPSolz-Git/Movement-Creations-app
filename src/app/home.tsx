@@ -1,5 +1,8 @@
+import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
   const handleLogout = () => {
@@ -7,109 +10,165 @@ export default function Home() {
   };
 
   const stats = [
-    { title: "Songs", value: "24" },
-    { title: "Streams", value: "1.2M" },
-    { title: "Revenue", value: "$3,420" },
-    { title: "Stores", value: "150+" },
-  ];
+    { icon: "music", title: "Songs", value: "24" },
+    { icon: "radio", title: "Streams", value: "1.2M" },
+    { icon: "trending-up", title: "Revenue", value: "$3,420" },
+    { icon: "globe", title: "Stores", value: "150+" },
+  ] as const;
 
   const releases = [
     {
       title: "Midnight Dreams",
       artist: "Movement Creations",
       status: "Live",
+      statusBg: "bg-green-100",
+      statusText: "text-green-700",
     },
     {
       title: "Lost in Rhythm",
       artist: "Movement Creations",
       status: "Pending",
+      statusBg: "bg-violet-100",
+      statusText: "text-violet-700",
     },
     {
       title: "Sunset Vibes",
       artist: "Movement Creations",
       status: "Review",
+      statusBg: "bg-amber-100",
+      statusText: "text-amber-700",
     },
   ];
 
   return (
-    <ScrollView className="flex-1 bg-gray-100">
-      <View className="px-6 pt-16 pb-10">
-        {/* Header */}
-        <Text className="text-3xl font-bold text-black">Dashboard 🎵</Text>
+    <LinearGradient
+      colors={["#F5EEFF", "#F8F8FC", "#FFFFFF"]}
+      className="flex-1"
+    >
+      <SafeAreaView className="flex-1">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="px-4 pb-10 pt-8 md:px-8 lg:px-12"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <View className="flex-row items-center gap-4">
+              <View className="h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 shadow-lg">
+                <Text className="text-xl font-bold text-white">MC</Text>
+              </View>
 
-        <Text className="mt-2 text-gray-500">
-          Welcome back! Here's an overview of your music distribution.
-        </Text>
+              <View>
+                <Text className="text-2xl font-bold text-gray-900 md:text-3xl">
+                  Dashboard
+                </Text>
 
-        {/* Stats */}
-        <View className="mt-8 flex-row flex-wrap justify-between">
-          {stats.map((item) => (
-            <View
-              key={item.title}
-              className="mb-4 w-[48%] rounded-2xl bg-white p-5 shadow"
-            >
-              <Text className="text-gray-500">{item.title}</Text>
-
-              <Text className="mt-2 text-2xl font-bold text-black">
-                {item.value}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Quick Actions */}
-        <Text className="mt-4 text-xl font-bold text-black">Quick Actions</Text>
-
-        <View className="mt-4">
-          <TouchableOpacity className="mb-3 rounded-xl bg-black py-4">
-            <Text className="text-center text-lg font-semibold text-white">
-              Upload New Release
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity className="rounded-xl bg-white py-4 shadow">
-            <Text className="text-center text-lg font-semibold text-black">
-              View Analytics
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Recent Releases */}
-        <Text className="mt-8 text-xl font-bold text-black">
-          Recent Releases
-        </Text>
-
-        <View className="mt-4">
-          {releases.map((release) => (
-            <View
-              key={release.title}
-              className="mb-4 rounded-2xl bg-white p-5 shadow"
-            >
-              <Text className="text-lg font-bold text-black">
-                {release.title}
-              </Text>
-
-              <Text className="mt-1 text-gray-500">{release.artist}</Text>
-
-              <View className="mt-3 self-start rounded-full bg-green-100 px-3 py-1">
-                <Text className="font-semibold text-green-700">
-                  {release.status}
+                <Text className="mt-1 text-sm text-gray-500 md:text-base">
+                  Movement Creations Studio
                 </Text>
               </View>
             </View>
-          ))}
-        </View>
 
-        {/* Logout */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          className="mt-6 rounded-xl bg-red-500 py-4"
-        >
-          <Text className="text-center text-lg font-semibold text-white">
-            Logout
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="h-11 w-11 items-center justify-center rounded-xl border border-violet-100 bg-white shadow"
+            >
+              <Feather name="log-out" size={19} color="#7C3AED" />
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-8 rounded-3xl bg-white p-6 shadow-lg md:p-8">
+            <View className="flex-row items-center gap-4">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-violet-100">
+                <MaterialIcons name="library-music" size={24} color="#7C3AED" />
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-xl font-bold text-gray-900 md:text-2xl">
+                  Welcome back
+                </Text>
+
+                <Text className="mt-1 text-gray-500 md:text-base">
+                  Here's an overview of your music distribution.
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity className="mt-6 flex-row items-center justify-center rounded-xl bg-violet-600 py-4 shadow md:py-5">
+              <Feather name="upload-cloud" size={20} color="#FFFFFF" />
+
+              <Text className="ml-2 text-lg font-bold text-white md:text-xl">
+                Upload New Release
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-8 flex-row flex-wrap justify-between gap-4">
+            {stats.map((item) => (
+              <View
+                key={item.title}
+                className="mb-4 w-full rounded-2xl border border-violet-50 bg-white p-5 shadow sm:w-[48%] lg:w-[23%]"
+              >
+                <View className="h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
+                  <Feather name={item.icon} size={18} color="#7C3AED" />
+                </View>
+
+                <Text className="mt-4 text-gray-500">{item.title}</Text>
+
+                <Text className="mt-1 text-2xl font-bold text-gray-900">
+                  {item.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View className="mt-2 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Text className="text-xl font-bold text-gray-900 md:text-2xl">
+              Recent Releases
+            </Text>
+
+            <TouchableOpacity>
+              <Text className="font-semibold text-violet-600">View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-4 space-y-4">
+            {releases.map((release) => (
+              <View
+                key={release.title}
+                className="rounded-2xl border border-violet-50 bg-white p-5 shadow md:p-6"
+              >
+                <View className="flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <View className="flex-1 pr-0 md:pr-4">
+                    <Text className="text-lg font-bold text-gray-900 md:text-xl">
+                      {release.title}
+                    </Text>
+
+                    <Text className="mt-1 text-gray-500">{release.artist}</Text>
+                  </View>
+
+                  <View
+                    className={`rounded-full px-3 py-1 ${release.statusBg}`}
+                  >
+                    <Text
+                      className={`text-sm font-semibold ${release.statusText}`}
+                    >
+                      {release.status}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity className="mt-2 flex-row items-center justify-center rounded-xl border border-gray-300 bg-white py-4 shadow md:py-5">
+            <Feather name="bar-chart-2" size={20} color="#666" />
+
+            <Text className="ml-2 text-lg font-semibold text-gray-700 md:text-xl">
+              View Analytics
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
