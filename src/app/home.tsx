@@ -43,15 +43,20 @@ export default function Home() {
   return (
     <LinearGradient
       colors={["#F5EEFF", "#F8F8FC", "#FFFFFF"]}
+      style={{ flex: 1 }}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">
         <ScrollView
-          className="flex-1"
-          contentContainerClassName="px-4 pb-10 pt-8 md:px-8 lg:px-12"
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 40,
+            paddingTop: 32,
+          }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <View className="flex-row items-center justify-between gap-4">
             <View className="flex-row items-center gap-4">
               <View className="h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 shadow-lg">
                 <Text className="text-xl font-bold text-white">MC</Text>
@@ -102,11 +107,11 @@ export default function Home() {
             </TouchableOpacity>
           </View>
 
-          <View className="mt-8 flex-row flex-wrap justify-between gap-4">
+          <View className="mt-8 flex-row flex-wrap justify-between gap-2">
             {stats.map((item) => (
               <View
                 key={item.title}
-                className="mb-4 w-full rounded-2xl border border-violet-50 bg-white p-5 shadow sm:w-[48%] lg:w-[23%]"
+                className="mb-4 w-[48%] rounded-2xl border border-violet-50 bg-white p-5 shadow"
               >
                 <View className="h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
                   <Feather name={item.icon} size={18} color="#7C3AED" />

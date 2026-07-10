@@ -25,16 +25,25 @@ export default function Login() {
   return (
     <LinearGradient
       colors={["#F5EEFF", "#F8F8FC", "#FFFFFF"]}
+      style={{ flex: 1 }}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 80}
+          style={{ flex: 1 }}
           className="flex-1"
         >
           <ScrollView
-            className="flex-1"
-            contentContainerClassName="justify-center px-4 py-10 md:px-10"
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: "center",
+              minHeight: "100%",
+              paddingHorizontal: 16,
+              paddingVertical: 32,
+            }}
             keyboardShouldPersistTaps="handled"
           >
             <View className="items-center">
