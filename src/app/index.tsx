@@ -51,7 +51,7 @@ export default function Login() {
                 <Text className="text-2xl font-bold text-white">MC</Text>
               </View>
 
-              <Text className="mt-6 text-center text-4xl font-bold text-gray-900 md:text-5xl">
+              <Text className="mt-4 text-center text-4xl font-bold text-gray-900 md:text-5xl">
                 Movement Creations
               </Text>
 
@@ -129,13 +129,13 @@ export default function Login() {
                 <View className="h-px flex-1 bg-gray-300" />
               </View>
 
-              <TouchableOpacity className="flex-row items-center justify-center rounded-xl border border-gray-300 py-4">
+              {/* <TouchableOpacity className="flex-row items-center justify-center rounded-xl border border-gray-300 py-4">
                 <MaterialIcons name="fingerprint" size={22} color="#666" />
 
                 <Text className="ml-2 font-semibold text-gray-700">
                   Secure Sign-in
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View className="mt-8 items-center text-center">
