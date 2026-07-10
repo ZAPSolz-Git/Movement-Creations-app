@@ -1,10 +1,11 @@
 // lib/tokenStorage.ts
-import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 const ACCESS_KEY = "mc_access_token";
 const REFRESH_KEY = "mc_refresh_token";
 const USER_KEY = "mc_user";
+const TOKEN_EXPIRY_KEY = "mc_token_expiry";
 
 export interface StoredUser {
   id: string;
@@ -70,6 +71,19 @@ export const tokenStorage = {
     await storage.deleteItem(ACCESS_KEY);
     await storage.deleteItem(REFRESH_KEY);
     await storage.deleteItem(USER_KEY);
+    await storage.deleteItem(TOKEN_EXPIRY_KEY);
+  },
+
+  async setTokenExpiry(expiry: number): Promise<void> {
+    await storage.setItem(TOKEN_EXPIRY_KEY, String(expiry));
+  },
+
+  async getTokenExpiry(): Promise<number | null> {
+    const raw = await storage.getItem(TOKEN_EXPIRY_KEY);
+    if (!raw) return null;
+
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
   },
 
   // Display-only cache — never used for authorization decisions.

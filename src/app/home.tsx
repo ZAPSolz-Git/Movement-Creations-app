@@ -173,7 +173,7 @@ export default function () {
               ))}
             </View>
 
-            <TouchableOpacity className="mt-2 flex-row items-center justify-center rounded-xl border border-gray-300 bg-white py-4 shadow md:py-5">
+            <TouchableOpacity className="mt-6 flex-row items-center justify-center rounded-xl border border-gray-300 bg-white py-4 shadow md:py-5">
               <Feather name="bar-chart-2" size={20} color="#666" />
 
               <Text className="ml-2 text-lg font-semibold text-gray-700 md:text-xl">
