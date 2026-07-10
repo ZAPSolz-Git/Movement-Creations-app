@@ -170,7 +170,8 @@ export default function Login() {
                   value={email}
                   onChangeText={(v) => {
                     setEmail(v);
-                    if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+                    if (errors.email)
+                      setErrors((e) => ({ ...e, email: undefined }));
                   }}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -179,7 +180,9 @@ export default function Login() {
                 />
               </View>
               {errors.email ? (
-                <Text className="mb-4 ml-1 text-xs text-red-500">{errors.email}</Text>
+                <Text className="mb-4 ml-1 text-xs text-red-500">
+                  {errors.email}
+                </Text>
               ) : (
                 <View className="mb-5" />
               )}
@@ -196,10 +199,16 @@ export default function Login() {
 
               <View
                 className={`flex-row items-center rounded-xl border px-4 ${
-                  errors.password ? "border-red-400 bg-red-50" : "border-gray-200"
+                  errors.password
+                    ? "border-red-400 bg-red-50"
+                    : "border-gray-200"
                 }`}
               >
-                <Feather name="key" size={18} color={errors.password ? "#ef4444" : "#888"} />
+                <Feather
+                  name="key"
+                  size={18}
+                  color={errors.password ? "#ef4444" : "#888"}
+                />
 
                 <TextInput
                   className="ml-3 flex-1 py-4"
@@ -265,7 +274,7 @@ export default function Login() {
                 <Text className="ml-2 font-semibold text-gray-700">
                   Secure Sign-in
                 </Text>
-              </TouchableOpacity> */}
+              </TouchableOpacity>
             </View>
 
             <View className="mt-8 items-center text-center">
