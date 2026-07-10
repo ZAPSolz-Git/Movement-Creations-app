@@ -1,21 +1,21 @@
-import { Stack } from "expo-router";
-import { View } from "react-native";
-
-import Footer from "../components/Footer";
+// src/app/_layout.tsx
+import { Stack, router } from "expo-router";
+import { useEffect } from "react";
+import { AuthProvider } from "../contexts/SupabaseAuthContext";
 import "../global.css";
-
+import { setOnAuthExpired } from "../lib/apiClient";
 export default function RootLayout() {
-  return (
-    <View className="flex-1">
-      <View className="flex-1 pb-24">
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        />
-      </View>
+  useEffect(() => {
+    setOnAuthExpired(() => router.replace("/home"));
+  }, []);
 
-      <Footer />
-    </View>
+  return (
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </AuthProvider>
   );
 }
