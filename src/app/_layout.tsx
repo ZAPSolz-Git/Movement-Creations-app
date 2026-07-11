@@ -15,7 +15,11 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="home" />
-        <Stack.Screen name="Release" />
+        <Stack.Screen name="release" />
+        <Stack.Screen name="revenue" />
+        <Stack.Screen name="reports" />
+        <Stack.Screen name="rights" />
+        <Stack.Screen name="profile" />
       </Stack>
     </AuthProvider>
   );

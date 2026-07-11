@@ -7,30 +7,38 @@ const menuItems = [
   {
     name: "Dashboard",
     icon: "grid",
-    active: true,
     library: "feather",
     route: "/home",
   },
   {
-    name: "Tracks",
+    name: "Release",
     icon: "copy",
     library: "feather",
-    route: "/Release",
+    route: "/release",
   },
   {
     name: "Revenue",
     icon: "card-outline",
     library: "ion",
+    route: "/revenue",
   },
   {
     name: "Reports",
     icon: "bar-chart-2",
     library: "feather",
+    route: "/reports",
+  },
+  {
+    name: "Rights",
+    icon: "shield",
+    library: "feather",
+    route: "/rights",
   },
   {
     name: "Profile",
     icon: "user",
     library: "feather",
+    route: "/profile",
   },
 ];
 
@@ -81,14 +89,12 @@ export default function Footer() {
         "
       >
         {menuItems.map((item, index) => {
-          const isActive = item.route
-            ? pathname === item.route
-            : (item.active ?? false);
+          const isActive = pathname === item.route;
 
           return (
             <TouchableOpacity
               key={index}
-              onPress={() => item.route && router.push(item.route)}
+              onPress={() => item.route && router.push(item.route as any)}
               className="
                 items-center
                 justify-center
