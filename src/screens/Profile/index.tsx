@@ -1,97 +1,565 @@
-import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Briefcase,
+  Eye,
+  EyeOff,
+  FileText,
+  Landmark,
+  ListChecks,
+  Lock,
+  PlusCircle,
+  RefreshCw,
+  Save,
+  Trash2,
+  UserCircle,
+} from "lucide-react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
 
-const profileItems = [
-  { title: "Email", value: "artist@movement.com", icon: "mail" },
-  { title: "Plan", value: "Pro Studio", icon: "award" },
-  { title: "Location", value: "Los Angeles", icon: "map-pin" },
-  { title: "Status", value: "Verified", icon: "check-circle" },
+/* ─────────────────────────────────────────
+   TYPES + STATIC DATA
+   Replace with your Supabase user/user_profiles
+   fetch + upsert once wired up on mobile.
+───────────────────────────────────────── */
+
+type TabKey = "general" | "management" | "finance" | "password" | "contract" | "companylabels";
+
+interface Label {
+  id: string;
+  name: string;
+}
+
+interface ProfileState {
+  legal_entity: string;
+  cin_reg_no: string;
+  dob_doi: string;
+  registered_address: string;
+  country: string;
+  city: string;
+  pincode: string;
+  correspondence_address: string;
+  correspondence_pincode: string;
+  pan_status: string;
+  name_on_pan: string;
+  pan_number: string;
+  gst_number: string;
+  gst_state: string;
+  bank_name: string;
+  bank_address: string;
+  bank_account_name: string;
+  bank_account_number: string;
+  ifsc_code: string;
+  swift_code: string;
+  contract_start_date: string;
+  contract_end_date: string;
+  contract_status: string;
+  plans: string[];
+  company_labels: Label[];
+}
+
+const INITIAL_PROFILE: ProfileState = {
+  legal_entity: "Movement Creations LLC",
+  cin_reg_no: "U72900MH2021PTC123456",
+  dob_doi: "2021-03-14",
+  registered_address: "12 Studio Lane, Mumbai, MH",
+  country: "India",
+  city: "Mumbai",
+  pincode: "400001",
+  correspondence_address: "",
+  correspondence_pincode: "",
+  pan_status: "Verified",
+  name_on_pan: "Movement Creations LLC",
+  pan_number: "ABCDE1234F",
+  gst_number: "27ABCDE1234F1Z5",
+  gst_state: "Maharashtra",
+  bank_name: "HDFC Bank",
+  bank_address: "Fort Branch, Mumbai",
+  bank_account_name: "Movement Creations LLC",
+  bank_account_number: "50100123456789",
+  ifsc_code: "HDFC0000123",
+  swift_code: "HDFCINBB",
+  contract_start_date: "2025-01-01",
+  contract_end_date: "2026-12-31",
+  contract_status: "Active",
+  plans: ["pro"],
+  company_labels: [{ id: "l1", name: "Movement Creations" }],
+};
+
+const TABS_CONFIG: { value: TabKey; label: string; icon: any }[] = [
+  { value: "general", label: "General", icon: UserCircle },
+  { value: "management", label: "My Plan", icon: Briefcase },
+  { value: "finance", label: "Finance", icon: Landmark },
+  { value: "password", label: "Password", icon: Lock },
+  { value: "contract", label: "Contract", icon: FileText },
+  { value: "companylabels", label: "Music Labels", icon: ListChecks },
 ];
 
-export default function ProfileScreen() {
+const GENERAL_FIELDS = [
+  { name: "legal_entity", label: "Legal Entity Name" },
+  { name: "cin_reg_no", label: "CIN / Registration No.", lockable: true },
+  { name: "dob_doi", label: "Date of Birth / Incorporation", lockable: true },
+  { name: "registered_address", label: "Registered Address", lockable: true },
+  { name: "country", label: "Country" },
+  { name: "city", label: "City" },
+  { name: "pincode", label: "Pincode", lockable: true },
+  { name: "correspondence_address", label: "Correspondence Address (if different)", lockable: true },
+  { name: "correspondence_pincode", label: "Correspondence Pincode" },
+] as const;
+
+const TAX_FIELDS = [
+  { name: "pan_status", label: "PAN Status" },
+  { name: "name_on_pan", label: "Name on PAN Card" },
+  { name: "pan_number", label: "PAN Number" },
+  { name: "gst_number", label: "GST Number (if applicable)" },
+  { name: "gst_state", label: "GST State" },
+] as const;
+
+const BANK_FIELDS = [
+  { name: "bank_name", label: "Bank Name", lockable: true },
+  { name: "bank_address", label: "Bank Address", lockable: true },
+  { name: "bank_account_name", label: "Bank Account Name (Beneficiary)", lockable: true },
+  { name: "bank_account_number", label: "Bank Account Number", lockable: true },
+  { name: "ifsc_code", label: "IFSC Code", lockable: true },
+  { name: "swift_code", label: "SWIFT Code (for international payments)", lockable: true },
+] as const;
+
+const CONTRACT_FIELDS = [
+  { name: "contract_start_date", label: "Contract Start Date" },
+  { name: "contract_end_date", label: "Contract End Date" },
+  { name: "contract_status", label: "Contract Status" },
+] as const;
+
+const PLAN_LIMITS: Record<string, number> = { starter: 1, pro: 2, labels: 5 };
+const ACCENT = "#ec5b13";
+
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<ProfileState>(INITIAL_PROFILE);
+  const [activeTab, setActiveTab] = useState<TabKey>("general");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleFieldChange = (field: string, lockable: boolean | undefined, value: string) => {
+    const current = (profile as any)[field];
+    if (lockable && current && String(current).trim() !== "") {
+      Alert.alert("Locked field", "This field can only be set once and cannot be modified later.");
+      return;
+    }
+    setProfile((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleConfirmSave = () => {
+    setIsSaving(true);
+    // Replace with your Supabase upsert to `users` + `user_profiles`
+    setTimeout(() => {
+      setIsSaving(false);
+      setShowConfirmDialog(false);
+      Alert.alert("Saved", "Profile saved successfully!");
+    }, 900);
+  };
+
   return (
-    <LinearGradient
-      colors={["#F5EEFF", "#F8F8FC", "#FFFFFF"]}
-      style={{ flex: 1 }}
-    >
+    <LinearGradient colors={["#FFF8F1", "#F8F8FC", "#FFFFFF"]} style={{ flex: 1 }}>
       <SafeAreaView className="flex-1">
         <View className="flex-1">
           <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingTop: 32,
-              paddingBottom: 160,
-            }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 170 }}
             showsVerticalScrollIndicator={false}
           >
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-2xl font-bold text-gray-900">
-                  Profile
-                </Text>
-                <Text className="mt-1 text-sm text-gray-500">
-                  A simple profile placeholder
-                </Text>
-              </View>
-
-              <View className="h-11 w-11 items-center justify-center rounded-xl bg-violet-600 shadow">
-                <Feather name="user" size={20} color="#FFFFFF" />
+            {/* ── HEADER ── */}
+            <View className="flex-row items-start justify-between">
+              <View className="flex-row items-center gap-2 flex-1">
+                <UserCircle size={26} color={ACCENT} />
+                <Text className="text-2xl font-bold text-slate-900">My Profile</Text>
               </View>
             </View>
+            <Text className="text-sm text-slate-500 mt-1">
+              Manage your personal, business, and security information.
+            </Text>
 
-            <View className="mt-6 rounded-3xl bg-white p-6 shadow-lg">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
-                <Text className="text-xl font-bold text-violet-700">MC</Text>
+            <TouchableOpacity onPress={() => setShowConfirmDialog(true)} activeOpacity={0.85} className="mt-4 self-start">
+              <View className="flex-row items-center gap-2 rounded-xl px-5 py-2.5" style={{ backgroundColor: ACCENT }}>
+                <Save size={15} color="#fff" />
+                <Text className="text-white text-sm font-semibold">Save Profile</Text>
               </View>
-              <Text className="mt-4 text-2xl font-bold text-gray-900">
-                Movement Creations
-              </Text>
-              <Text className="mt-1 text-gray-500">
-                Music brand • Studio owner
-              </Text>
-            </View>
-
-            <View className="mt-8 gap-3">
-              {profileItems.map((item) => (
-                <View
-                  key={item.title}
-                  className="flex-row items-center justify-between rounded-2xl border border-violet-50 bg-white p-5 shadow"
-                >
-                  <View className="flex-row items-center gap-3">
-                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
-                      <Feather
-                        name={item.icon as any}
-                        size={18}
-                        color="#7C3AED"
-                      />
-                    </View>
-                    <View>
-                      <Text className="text-sm text-gray-500">
-                        {item.title}
-                      </Text>
-                      <Text className="mt-1 text-base font-semibold text-gray-900">
-                        {item.value}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            <TouchableOpacity className="mt-6 rounded-2xl bg-violet-600 px-4 py-4 shadow">
-              <Text className="text-center text-lg font-semibold text-white">
-                Edit profile
-              </Text>
             </TouchableOpacity>
+
+            {/* ── TABS ── */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 18 }}>
+              {TABS_CONFIG.map((tab) => {
+                const active = activeTab === tab.value;
+                const Icon = tab.icon;
+                return (
+                  <TouchableOpacity
+                    key={tab.value}
+                    onPress={() => setActiveTab(tab.value)}
+                    className={`flex-row items-center gap-1.5 px-3.5 py-2 rounded-lg ${active ? "" : "bg-slate-100"}`}
+                    style={active ? { backgroundColor: ACCENT } : undefined}
+                  >
+                    <Icon size={13} color={active ? "#fff" : "#64748b"} />
+                    <Text className={`text-xs font-semibold ${active ? "text-white" : "text-slate-600"}`}>{tab.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* ── TAB CONTENT ── */}
+            <View className="mt-5 bg-white/70 border border-slate-200 rounded-2xl p-5">
+              {activeTab === "general" && (
+                <ProfileSection title="General Information" fields={GENERAL_FIELDS} profile={profile} onChange={handleFieldChange} />
+              )}
+
+              {activeTab === "finance" && (
+                <View className="gap-6">
+                  <ProfileSection title="Tax Information" fields={TAX_FIELDS} profile={profile} onChange={handleFieldChange} />
+                  <ProfileSection title="Bank Account Details" fields={BANK_FIELDS} profile={profile} onChange={handleFieldChange} />
+                </View>
+              )}
+
+              {activeTab === "management" && <ManagementTab profile={profile} onChange={handleFieldChange} />}
+
+              {activeTab === "password" && <PasswordTab />}
+
+              {activeTab === "contract" && (
+                <ProfileSection title="Contract Details" fields={CONTRACT_FIELDS} profile={profile} onChange={handleFieldChange} />
+              )}
+
+              {activeTab === "companylabels" && <MusicLabelsTab profile={profile} setProfile={setProfile} />}
+            </View>
           </ScrollView>
 
           <Footer />
         </View>
       </SafeAreaView>
+
+      {/* ── SAVE CONFIRMATION MODAL ── */}
+      <Modal visible={showConfirmDialog} animationType="fade" transparent onRequestClose={() => setShowConfirmDialog(false)}>
+        <View className="flex-1 bg-black/30 items-center justify-center px-6">
+          <View className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-2xl p-6">
+            <Text className="text-lg font-bold text-slate-900 mb-1.5">Confirm Profile Submission</Text>
+            <Text className="text-sm text-slate-500 mb-5">
+              Are you sure you want to save your profile? Make sure all details are correct.
+            </Text>
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowConfirmDialog(false)}
+                className="flex-1 items-center px-4 py-2.5 rounded-xl border border-slate-200"
+              >
+                <Text className="text-slate-600 text-sm font-medium">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmSave}
+                disabled={isSaving}
+                className="flex-1 items-center px-4 py-2.5 rounded-xl flex-row justify-center gap-2"
+                style={{ backgroundColor: ACCENT }}
+              >
+                {isSaving && <ActivityIndicator size="small" color="#fff" />}
+                <Text className="text-white text-sm font-semibold">{isSaving ? "Saving..." : "Yes, Save"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
+  );
+}
+
+/* ─────────────────────────────────────────
+   SUBCOMPONENTS
+───────────────────────────────────────── */
+
+function ProfileField({
+  label,
+  value,
+  lockable,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  lockable?: boolean;
+  onChangeText: (v: string) => void;
+}) {
+  const disabled = !!lockable && !!value && value.trim() !== "";
+  return (
+    <View className="mb-4">
+      <View className="flex-row items-center gap-1.5 mb-1.5">
+        <Text className="text-sm font-medium text-slate-700">{label}</Text>
+        {disabled && <Lock size={11} color="#94a3b8" />}
+      </View>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        editable={!disabled}
+        placeholder={label}
+        placeholderTextColor="#cbd5e1"
+        className={`rounded-lg px-3 py-2.5 text-sm border ${
+          disabled ? "bg-slate-100 border-slate-200 text-slate-400" : "bg-white border-slate-300 text-slate-900"
+        }`}
+      />
+      {disabled && (
+        <View className="flex-row items-center gap-1 mt-1">
+          <Lock size={10} color="#94a3b8" />
+          <Text className="text-[11px] text-slate-400">This field cannot be changed once set</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ProfileSection({
+  title,
+  fields,
+  profile,
+  onChange,
+}: {
+  title: string;
+  fields: readonly { name: string; label: string; lockable?: boolean }[];
+  profile: ProfileState;
+  onChange: (field: string, lockable: boolean | undefined, value: string) => void;
+}) {
+  return (
+    <View>
+      <Text className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">{title}</Text>
+      {fields.map((f) => (
+        <ProfileField
+          key={f.name}
+          label={f.label}
+          value={(profile as any)[f.name] || ""}
+          lockable={f.lockable}
+          onChangeText={(v) => onChange(f.name, f.lockable, v)}
+        />
+      ))}
+    </View>
+  );
+}
+
+function ManagementTab({
+  profile,
+  onChange,
+}: {
+  profile: ProfileState;
+  onChange: (field: string, lockable: boolean | undefined, value: string) => void;
+}) {
+  const today = new Date();
+  const endDate = profile.contract_end_date ? new Date(profile.contract_end_date) : null;
+  let status = "Active";
+  let statusStyle = "bg-green-100 text-green-700";
+  if (endDate) {
+    const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      status = "Expired";
+      statusStyle = "bg-red-100 text-red-700";
+    } else if (diffDays <= 30) {
+      status = "Close To Expire";
+      statusStyle = "bg-amber-100 text-amber-700";
+    }
+  }
+
+  return (
+    <View>
+      <Text className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">Subscription Details</Text>
+
+      <View className="flex-row gap-3 mb-4">
+        <View className="flex-1 rounded-xl border border-slate-200 bg-white p-4">
+          <Text className="text-xs text-slate-500 mb-2">Current Plan</Text>
+          <View className="flex-row flex-wrap gap-1.5">
+            {profile.plans.map((p) => (
+              <View key={p} className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${ACCENT}1A` }}>
+                <Text style={{ color: ACCENT }} className="text-xs font-semibold uppercase">
+                  {p}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        <View className="flex-1 rounded-xl border border-slate-200 bg-white p-4">
+          <Text className="text-xs text-slate-500 mb-2">Contract Status</Text>
+          <View className={`self-start px-2.5 py-1 rounded-full ${statusStyle.split(" ")[0]}`}>
+            <Text className={`text-xs font-semibold ${statusStyle.split(" ")[1]}`}>{status}</Text>
+          </View>
+        </View>
+      </View>
+
+      <ProfileField
+        label="Plan Start Date"
+        value={profile.contract_start_date}
+        onChangeText={(v) => onChange("contract_start_date", false, v)}
+      />
+      <ProfileField
+        label="Plan End Date"
+        value={profile.contract_end_date}
+        onChangeText={(v) => onChange("contract_end_date", false, v)}
+      />
+    </View>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChangeText,
+  show,
+  onToggleShow,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  show: boolean;
+  onToggleShow: () => void;
+}) {
+  return (
+    <View className="mb-4">
+      <Text className="text-sm font-medium text-slate-700 mb-1.5">{label}</Text>
+      <View className="flex-row items-center border border-slate-300 rounded-lg bg-white pr-3">
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={!show}
+          placeholder={label}
+          placeholderTextColor="#cbd5e1"
+          className="flex-1 px-3 py-2.5 text-sm text-slate-900"
+        />
+        <TouchableOpacity onPress={onToggleShow}>
+          {show ? <EyeOff size={17} color="#94a3b8" /> : <Eye size={17} color="#94a3b8" />}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function PasswordTab() {
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isChanging, setIsChanging] = useState(false);
+
+  const generatePassword = () => {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let out = "";
+    for (let i = 0; i < 12; i++) out += charset.charAt(Math.floor(Math.random() * charset.length));
+    setNewPassword(out);
+    setConfirmPassword(out);
+  };
+
+  const handleChangePassword = () => {
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Mismatch", "New password and confirm password do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert("Too short", "Password must be at least 6 characters long.");
+      return;
+    }
+    setIsChanging(true);
+    // Replace with supabase.auth.updateUser({ password: newPassword })
+    setTimeout(() => {
+      setIsChanging(false);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      Alert.alert("Success", "Password changed successfully!");
+    }, 800);
+  };
+
+  return (
+    <View>
+      <Text className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">Change Password</Text>
+
+      <PasswordField label="Current Password" value={oldPassword} onChangeText={setOldPassword} show={showOld} onToggleShow={() => setShowOld((s) => !s)} />
+      <PasswordField label="New Password" value={newPassword} onChangeText={setNewPassword} show={showNew} onToggleShow={() => setShowNew((s) => !s)} />
+      <PasswordField
+        label="Confirm New Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        show={showConfirm}
+        onToggleShow={() => setShowConfirm((s) => !s)}
+      />
+
+      <View className="flex-row flex-wrap gap-3 mt-2">
+        <TouchableOpacity onPress={generatePassword} className="flex-row items-center gap-1.5 border border-slate-300 rounded-lg px-3.5 py-2.5">
+          <RefreshCw size={14} color="#475569" />
+          <Text className="text-sm font-medium text-slate-600">Generate Password</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleChangePassword}
+          disabled={isChanging}
+          className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2.5"
+          style={{ backgroundColor: ACCENT }}
+        >
+          {isChanging ? <ActivityIndicator size="small" color="#fff" /> : <Save size={14} color="#fff" />}
+          <Text className="text-white text-sm font-semibold">{isChanging ? "Updating..." : "Change Password"}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function MusicLabelsTab({
+  profile,
+  setProfile,
+}: {
+  profile: ProfileState;
+  setProfile: React.Dispatch<React.SetStateAction<ProfileState>>;
+}) {
+  const getLimit = () => {
+    if (profile.plans.includes("labels")) return PLAN_LIMITS.labels;
+    if (profile.plans.includes("pro")) return PLAN_LIMITS.pro;
+    return PLAN_LIMITS.starter;
+  };
+
+  const addLabel = () => {
+    const limit = getLimit();
+    if (profile.company_labels.length >= limit) {
+      Alert.alert("Plan limit reached", `Your plan allows only ${limit} label(s).`);
+      return;
+    }
+    setProfile((prev) => ({
+      ...prev,
+      company_labels: [...prev.company_labels, { id: `l${Date.now()}`, name: "" }],
+    }));
+  };
+
+  return (
+    <View>
+      <Text className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">Music Labels</Text>
+
+      <View className="gap-2.5 mb-3">
+        {profile.company_labels.map((label, i) => (
+          <View key={label.id} className="flex-row items-center gap-2">
+            <TextInput
+              value={label.name}
+              editable={false}
+              placeholder={`Music Label ${i + 1}`}
+              placeholderTextColor="#cbd5e1"
+              className="flex-1 rounded-lg px-3 py-2.5 text-sm border border-slate-200 bg-slate-100 text-slate-400"
+            />
+            <View className="p-2.5 rounded-lg bg-red-200 opacity-50">
+              <Trash2 size={15} color="#dc2626" />
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity onPress={addLabel} className="flex-row items-center gap-1.5 self-start border rounded-lg px-3.5 py-2.5" style={{ borderColor: ACCENT }}>
+        <PlusCircle size={14} color={ACCENT} />
+        <Text style={{ color: ACCENT }} className="text-sm font-medium">
+          Add Music Label
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
