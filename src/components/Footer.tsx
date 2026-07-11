@@ -14,7 +14,7 @@ const menuItems = [
     name: "Release",
     icon: "copy",
     library: "feather",
-    route: "/release",
+    route: "/Release",
   },
   {
     name: "Revenue",
