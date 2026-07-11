@@ -1,6 +1,7 @@
 import { Text, TouchableOpacity, View } from "react-native";
 
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { router, usePathname } from "expo-router";
 
 const menuItems = [
   {
@@ -8,11 +9,13 @@ const menuItems = [
     icon: "grid",
     active: true,
     library: "feather",
+    route: "/home",
   },
   {
     name: "Tracks",
     icon: "copy",
     library: "feather",
+    route: "/Release",
   },
   {
     name: "Revenue",
@@ -32,6 +35,8 @@ const menuItems = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
+
   return (
     <View
       className="
@@ -75,60 +80,67 @@ export default function Footer() {
           mt-5
         "
       >
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            className="
+        {menuItems.map((item, index) => {
+          const isActive = item.route
+            ? pathname === item.route
+            : (item.active ?? false);
+
+          return (
+            <TouchableOpacity
+              key={index}
+              onPress={() => item.route && router.push(item.route)}
+              className="
                 items-center
                 justify-center
 
                 w-[65px]
               "
-          >
-            {item.active && (
-              <View
-                className="
-                      absolute
-                      -top-3
+            >
+              {isActive && (
+                <View
+                  className="
+                    absolute
+                    -top-3
 
-                      h-[3px]
-                      w-[50px]
+                    h-[3px]
+                    w-[50px]
 
-                      rounded-full
+                    rounded-full
 
-                      bg-[#8B3DFF]
-                    "
-              />
-            )}
+                    bg-[#8B3DFF]
+                  "
+                />
+              )}
 
-            {item.library === "feather" ? (
-              <Feather
-                name={item.icon as any}
-                size={22}
-                color={item.active ? "#8B3DFF" : "#555555"}
-              />
-            ) : (
-              <Ionicons
-                name={item.icon as any}
-                size={22}
-                color={item.active ? "#8B3DFF" : "#555555"}
-              />
-            )}
+              {item.library === "feather" ? (
+                <Feather
+                  name={item.icon as any}
+                  size={22}
+                  color={isActive ? "#8B3DFF" : "#555555"}
+                />
+              ) : (
+                <Ionicons
+                  name={item.icon as any}
+                  size={22}
+                  color={isActive ? "#8B3DFF" : "#555555"}
+                />
+              )}
 
-            <Text
-              className={`
+              <Text
+                className={`
                   mt-2
 
                   text-xs
                   font-semibold
 
-                  ${item.active ? "text-[#8B3DFF]" : "text-[#555555]"}
+                  ${isActive ? "text-[#8B3DFF]" : "text-[#555555]"}
                 `}
-            >
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );

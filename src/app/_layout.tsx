@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AuthProvider } from "../contexts/SupabaseAuthContext";
 import "../global.css";
 import { setOnAuthExpired } from "../lib/apiClient";
+
 export default function RootLayout() {
   useEffect(() => {
     setOnAuthExpired(() => router.replace("/home"));
@@ -14,7 +15,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="home" />
-        {/* <Stack.Screen name="(tabs)" /> */}
+        <Stack.Screen name="Release" />
       </Stack>
     </AuthProvider>
   );

@@ -4,8 +4,8 @@ import axios, {
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from "axios";
-import { tokenStorage } from "./tokenStorage";
 import { supabase } from "./supabaseClient";
+import { tokenStorage } from "./tokenStorage";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL as string;
 
@@ -31,7 +31,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ── 401 handling: refresh once, queue concurrent requests, retry ──
@@ -112,5 +112,5 @@ apiClient.interceptors.response.use(
     } finally {
       isRefreshing = false;
     }
-  }
+  },
 );
