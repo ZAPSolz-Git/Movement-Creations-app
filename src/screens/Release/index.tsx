@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Bell,
   Disc,
-  Film,
   LayoutGrid,
   List as ListIcon,
   Music,
@@ -13,7 +12,6 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Video,
   X,
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
@@ -37,7 +35,7 @@ import Footer from "../../components/Footer";
    backend is wired up on mobile.
 ───────────────────────────────────────── */
 
-type ReleaseType = "audio"  | "ringtone";
+type ReleaseType = "audio" | "ringtone";
 
 interface Release {
   id: string;
@@ -52,14 +50,71 @@ interface Release {
 }
 
 const STATIC_RELEASES: Release[] = [
-  { id: "1", title: "Midnight Echoes", release_type: "audio", primary_artist: "Nova Reyes", status: "Live", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "Oct 12, 2024", label: "Movement Creations", isrc: "INMC42400001" },
-  { id: "2", title: "Summer Vibes", release_type: "ringtone", primary_artist: "DJ Kairo", status: "Draft", cover_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", date: "Sep 24, 2024", label: "Movement Creations" },
-  { id: "3", title: "Morning Alarm", release_type: "ringtone", primary_artist: "Nova Reyes", status: "Review", cover_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80", date: "Aug 11, 2024" },
-//   { id: "4", title: "Neon Skyline", release_type: "video", primary_artist: "TUNERAAGA", status: "Live", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 30, 2024", isrc: "INMC42400004" },
-  { id: "5", title: "Silent Static", release_type: "audio", primary_artist: "Nova Reyes", status: "Rejected", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 02, 2024" },
-  { id: "6", title: "Golden Hour", release_type: "audio", primary_artist: "Ari Vale", status: "Live", cover_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", date: "Jun 18, 2024" },
-//   { id: "7", title: "City Lights", release_type: "video", primary_artist: "TUNERAAGA", status: "Draft", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "May 27, 2024" },
-  { id: "8", title: "Wave Rider", release_type: "ringtone", primary_artist: "DJ Kairo", status: "Live", cover_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80", date: "May 02, 2024" },
+  {
+    id: "1",
+    title: "Midnight Echoes",
+    release_type: "audio",
+    primary_artist: "Nova Reyes",
+    status: "Live",
+    cover_url:
+      "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80",
+    date: "Oct 12, 2024",
+    label: "Movement Creations",
+    isrc: "INMC42400001",
+  },
+  {
+    id: "2",
+    title: "Summer Vibes",
+    release_type: "ringtone",
+    primary_artist: "DJ Kairo",
+    status: "Draft",
+    cover_url:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80",
+    date: "Sep 24, 2024",
+    label: "Movement Creations",
+  },
+  {
+    id: "3",
+    title: "Morning Alarm",
+    release_type: "ringtone",
+    primary_artist: "Nova Reyes",
+    status: "Review",
+    cover_url:
+      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80",
+    date: "Aug 11, 2024",
+  },
+  //   { id: "4", title: "Neon Skyline", release_type: "video", primary_artist: "TUNERAAGA", status: "Live", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 30, 2024", isrc: "INMC42400004" },
+  {
+    id: "5",
+    title: "Silent Static",
+    release_type: "audio",
+    primary_artist: "Nova Reyes",
+    status: "Rejected",
+    cover_url:
+      "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80",
+    date: "Jul 02, 2024",
+  },
+  {
+    id: "6",
+    title: "Golden Hour",
+    release_type: "audio",
+    primary_artist: "Ari Vale",
+    status: "Live",
+    cover_url:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80",
+    date: "Jun 18, 2024",
+  },
+  //   { id: "7", title: "City Lights", release_type: "video", primary_artist: "TUNERAAGA", status: "Draft", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "May 27, 2024" },
+  {
+    id: "8",
+    title: "Wave Rider",
+    release_type: "ringtone",
+    primary_artist: "DJ Kairo",
+    status: "Live",
+    cover_url:
+      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80",
+    date: "May 02, 2024",
+  },
 ];
 
 const PAGE_SIZE = 5;
@@ -68,7 +123,7 @@ const ACCENT = "#ec5b13";
 const TAB_CONFIG: { value: "all" | ReleaseType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "audio", label: "Audio" },
- 
+
   { value: "ringtone", label: "Ringtone" },
 ];
 
@@ -105,7 +160,7 @@ export default function ReleasePage() {
       result = result.filter(
         (r) =>
           r.title.toLowerCase().includes(term) ||
-          r.primary_artist.toLowerCase().includes(term)
+          r.primary_artist.toLowerCase().includes(term),
       );
     }
     return result;
@@ -116,12 +171,12 @@ export default function ReleasePage() {
   const maxPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const paginatedReleases = filteredReleases.slice(
     (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
+    page * PAGE_SIZE,
   );
 
   const counts = {
     audio: releases.filter((r) => r.release_type === "audio").length,
-  
+
     ringtone: releases.filter((r) => r.release_type === "ringtone").length,
   };
 
@@ -148,14 +203,14 @@ export default function ReleasePage() {
             setReleases((prev) => prev.filter((r) => r.id !== release.id));
           },
         },
-      ]
+      ],
     );
   };
 
   const handleCreate = (type: ReleaseType) => {
     Alert.alert(
       `New ${type} release`,
-      "Hook this up to your form screen when it's ready."
+      "Hook this up to your form screen when it's ready.",
     );
   };
 
@@ -187,7 +242,11 @@ export default function ReleasePage() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 170 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 24,
+            paddingBottom: 170,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* ── HEADER ── */}
@@ -218,7 +277,7 @@ export default function ReleasePage() {
               colors={["#f43f5e", "#ec4899", "#9333ea"]}
               onPress={() => handleCreate("audio")}
             />
-          
+
             <CreateActionCard
               title="New Ringtone"
               description="Ringtones for mobile"
@@ -280,13 +339,19 @@ export default function ReleasePage() {
                   onPress={() => setViewMode("grid")}
                   className={`p-2 ${viewMode === "grid" ? "bg-slate-900" : "bg-slate-50"}`}
                 >
-                  <LayoutGrid size={16} color={viewMode === "grid" ? "#fff" : "#94a3b8"} />
+                  <LayoutGrid
+                    size={16}
+                    color={viewMode === "grid" ? "#fff" : "#94a3b8"}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setViewMode("list")}
                   className={`p-2 ${viewMode === "list" ? "bg-slate-900" : "bg-slate-50"}`}
                 >
-                  <ListIcon size={16} color={viewMode === "list" ? "#fff" : "#94a3b8"} />
+                  <ListIcon
+                    size={16}
+                    color={viewMode === "list" ? "#fff" : "#94a3b8"}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -296,13 +361,23 @@ export default function ReleasePage() {
               {filteredReleases.length === 0 ? (
                 <View className="items-center justify-center py-16 gap-2">
                   <Music size={36} color="#cbd5e1" />
-                  <Text className="font-medium text-slate-500">No releases found</Text>
+                  <Text className="font-medium text-slate-500">
+                    No releases found
+                  </Text>
                   <Text className="text-sm text-slate-400">
-                    {searchTerm ? "Try a different search term" : "Create your first release above"}
+                    {searchTerm
+                      ? "Try a different search term"
+                      : "Create your first release above"}
                   </Text>
                   {!!searchTerm && (
-                    <TouchableOpacity onPress={() => setSearchTerm("")} className="mt-1">
-                      <Text style={{ color: ACCENT }} className="text-sm font-medium">
+                    <TouchableOpacity
+                      onPress={() => setSearchTerm("")}
+                      className="mt-1"
+                    >
+                      <Text
+                        style={{ color: ACCENT }}
+                        className="text-sm font-medium"
+                      >
                         Clear search
                       </Text>
                     </TouchableOpacity>
@@ -336,7 +411,8 @@ export default function ReleasePage() {
               {totalCount > PAGE_SIZE && (
                 <View className="mt-5 pt-4 border-t border-slate-100 flex-row items-center justify-between">
                   <Text className="text-sm text-slate-400">
-                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} of {totalCount}
+                    {(page - 1) * PAGE_SIZE + 1}–
+                    {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount}
                   </Text>
                   <View className="flex-row gap-2">
                     <TouchableOpacity
@@ -399,7 +475,11 @@ function CreateActionCard({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity onPress={onPress} className="flex-1 min-w-[47%]" activeOpacity={0.85}>
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-1 min-w-[47%]"
+      activeOpacity={0.85}
+    >
       <LinearGradient
         colors={colors}
         start={{ x: 0, y: 0 }}
@@ -433,7 +513,10 @@ function TypeBadge({ type }: { type: ReleaseType }) {
   return (
     <View className="flex-row items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5">
       <Icon size={11} color={ACCENT} />
-      <Text style={{ color: ACCENT }} className="text-xs font-semibold capitalize">
+      <Text
+        style={{ color: ACCENT }}
+        className="text-xs font-semibold capitalize"
+      >
         {type}
       </Text>
     </View>
@@ -455,15 +538,23 @@ function ReleaseListItem({
       activeOpacity={0.8}
       className="flex-row items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3"
     >
-      <Image source={{ uri: release.cover_url }} className="h-14 w-14 rounded-lg" />
+      <Image
+        source={{ uri: release.cover_url }}
+        className="h-14 w-14 rounded-lg"
+      />
       <View className="flex-1">
         <View className="flex-row items-center justify-between">
-          <Text numberOfLines={1} className="text-slate-900 font-semibold flex-1 pr-2">
+          <Text
+            numberOfLines={1}
+            className="text-slate-900 font-semibold flex-1 pr-2"
+          >
             {release.title}
           </Text>
           <StatusBadge status={release.status} />
         </View>
-        <Text className="text-slate-500 text-sm mt-0.5">{release.primary_artist}</Text>
+        <Text className="text-slate-500 text-sm mt-0.5">
+          {release.primary_artist}
+        </Text>
         <View className="flex-row items-center gap-2 mt-1.5">
           <TypeBadge type={release.release_type} />
           <Text className="text-xs text-slate-400">{release.date}</Text>
@@ -496,7 +587,10 @@ function ReleaseGridItem({
       activeOpacity={0.85}
       className="w-[47%] rounded-xl border border-slate-100 bg-slate-50/50 p-3"
     >
-      <Image source={{ uri: release.cover_url }} className="h-28 w-full rounded-lg" />
+      <Image
+        source={{ uri: release.cover_url }}
+        className="h-28 w-full rounded-lg"
+      />
       <Text numberOfLines={1} className="text-slate-900 font-semibold mt-2">
         {release.title}
       </Text>
@@ -541,11 +635,18 @@ function ReleaseViewModal({
   onClose: () => void;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View className="flex-1 bg-black/40 justify-end">
         <View className="bg-white rounded-t-2xl max-h-[85%]">
           <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100">
-            <Text className="text-lg font-bold text-slate-900">Release Details</Text>
+            <Text className="text-lg font-bold text-slate-900">
+              Release Details
+            </Text>
             <TouchableOpacity onPress={onClose} className="p-1">
               <X size={20} color="#64748b" />
             </TouchableOpacity>
