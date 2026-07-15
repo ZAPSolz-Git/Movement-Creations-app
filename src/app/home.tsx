@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../components/Footer";
 import { useDashboardData } from "../hooks/useDashboardData"; // ⚠️ adjust path if needed
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 const ACCENT = "#7C3AED";
 const ACCENT_DARK = "#4c1d95";
@@ -44,12 +45,13 @@ export default function HomePage() {
     error,
     refetch,
   } = useDashboardData();
-
+  const { signOut } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
-  const handleLogout = () => {
-    router.replace("/");
-  };
+const handleLogout = async () => {
+  await signOut(); // clears SecureStore + signs out Supabase
+  router.replace('/');
+};
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -316,7 +318,7 @@ export default function HomePage() {
                 Recent Releases
               </Text>
 
-              <TouchableOpacity onPress={() => router.push("/release")}>
+              <TouchableOpacity onPress={() => router.push("/Release")}>
                 <Text className="font-semibold text-violet-600">View All</Text>
               </TouchableOpacity>
             </View>

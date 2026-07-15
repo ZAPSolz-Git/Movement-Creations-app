@@ -12,7 +12,7 @@ import {
   X,
   XCircle,
 } from "lucide-react-native";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -448,13 +448,13 @@ function PlatformBar({
 }) {
   const widthAnim = useRef(new Animated.Value(0)).current;
 
-  useState(() => {
-    Animated.timing(widthAnim, {
-      toValue: percentage,
-      duration: 700,
-      useNativeDriver: false,
-    }).start();
-  });
+  useEffect(() => {
+  Animated.timing(widthAnim, {
+    toValue: percentage,
+    duration: 700,
+    useNativeDriver: false,
+  }).start();
+}, [percentage]);
 
   return (
     <View>

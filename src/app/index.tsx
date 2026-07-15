@@ -17,17 +17,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { supabase } from "../lib/supabaseClient";
 import { tokenStorage } from "../lib/tokenStorage";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface FormErrors {
   email?: string;
   password?: string;
 }
-
-interface FormErrors {
-  email?: string;
-  password?: string;
-}
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login() {
@@ -37,7 +32,7 @@ export default function Login() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-
+  const { signIn } = useAuth();
   const validate = (): boolean => {
     const next: FormErrors = {};
 
@@ -58,40 +53,11 @@ export default function Login() {
   const handleLogin = async () => {
     setServerError(null);
     if (!validate()) return;
-
     setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (error || !data?.session) {
-        throw new Error(error?.message || "Invalid credentials");
-      }
-
-      const sessionData = data.session;
-      await tokenStorage.setTokens({
-        accessToken: sessionData.access_token,
-        refreshToken: sessionData.refresh_token,
-      });
-      await tokenStorage.setUser(
-        sessionData.user as unknown as {
-          id: string;
-          email: string;
-          [key: string]: unknown;
-        },
-      );
-
-      router.replace("/home");
-    } catch (err: any) {
-      const message =
-        err?.message || "Login failed. Please check your credentials.";
-      setServerError(message);
-    } finally {
-      setLoading(false);
-    }
+    const { error } = await signIn(email.trim().toLowerCase(), password);
+    setLoading(false);
+    if (error) { setServerError(error); return; }
+    router.replace('/home');
   };
 
   return (
@@ -102,7 +68,7 @@ export default function Login() {
     >
       <SafeAreaView className="flex-1">
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 80}
           style={{ flex: 1 }}
           className="flex-1"

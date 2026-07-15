@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/SupabaseAuthContext";
 import { apiClient } from "../lib/apiClient";
 import { Platform } from "react-native";
+import { tokenStorage } from "@/lib/tokenStorage";
 // ── platform color map (port from your web constants) ──────────────────────
 const PLATFORM_COLORS: Record<string, string> = {
   Spotify: "#22c55e",
@@ -319,7 +320,7 @@ export function useReportsData({
   // npx expo install expo-file-system expo-sharing
 const handleDownload = useCallback(async (id: string) => {
   const url = `${apiClient.defaults.baseURL}/api/report/download/${id}`;
-  const token = apiClient.defaults.headers?.common?.Authorization as string | undefined;
+  const token = await tokenStorage.getAccessToken();
 
   if (Platform.OS === "web") {
     const res = await fetch(url, { headers: token ? { Authorization: token } : undefined });
