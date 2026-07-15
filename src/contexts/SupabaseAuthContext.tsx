@@ -1,31 +1,26 @@
 // contexts/SupabaseAuthContext.tsx
+import type { Session } from "@supabase/supabase-js";
 import {
+  ReactNode,
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  ReactNode,
 } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { apiClient } from "../lib/apiClient";
-import { tokenStorage, StoredUser } from "../lib/tokenStorage";
+import { StoredUser, tokenStorage } from "../lib/tokenStorage";
 import { SESSION_DURATION_MS, clearAuthStorage } from "../utils/Auth";
-import type { Session } from "@supabase/supabase-js";
-
-interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user: StoredUser;
-  message?: string;
-}
 
 interface AuthContextValue {
   user: StoredUser | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
 }
 
@@ -85,40 +80,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [handleSession]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      const { data } = await apiClient.post<LoginResponse>("/api/login", {
-        email: email.trim().toLowerCase(),
-        password,
-      });
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (!data?.access_token || !data?.refresh_token) {
-        return { error: data?.message || "Invalid credentials" };
+        if (error || !data?.session) {
+          return { error: error?.message || "Invalid credentials" };
+        }
+
+        const sessionData = data.session;
+
+        await tokenStorage.setTokens({
+          accessToken: sessionData.access_token,
+          refreshToken: sessionData.refresh_token,
+        });
+        await tokenStorage.setTokenExpiry(Date.now() + SESSION_DURATION_MS);
+        await tokenStorage.setUser(sessionData.user as unknown as StoredUser);
+        await handleSession(sessionData);
+
+        return { error: null };
+      } catch (err: any) {
+        const message =
+          err?.message || "Login failed. Please check your credentials.";
+        return { error: message };
       }
-
-      const { error: sessionErr } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-      if (sessionErr) return { error: "Could not establish session." };
-
-      await tokenStorage.setTokens({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-      });
-      await tokenStorage.setTokenExpiry(Date.now() + SESSION_DURATION_MS);
-      await tokenStorage.setUser(data.user);
-
-      return { error: null };
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Login failed. Please check your credentials.";
-      return { error: message };
-    }
-  }, []);
+    },
+    [handleSession],
+  );
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -130,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo(
     () => ({ user, session, loading, signIn, signOut }),
-    [user, session, loading, signIn, signOut]
+    [user, session, loading, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

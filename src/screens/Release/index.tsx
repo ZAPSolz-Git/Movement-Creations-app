@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Bell,
   Disc,
-  Film,
   LayoutGrid,
   List as ListIcon,
   Music,
@@ -13,7 +12,6 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Video,
   X,
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
@@ -103,7 +101,7 @@ export default function ReleasePage() {
       result = result.filter(
         (r) =>
           r.title.toLowerCase().includes(term) ||
-          r.primary_artist.toLowerCase().includes(term)
+          r.primary_artist.toLowerCase().includes(term),
       );
     }
     return result;
@@ -114,7 +112,7 @@ export default function ReleasePage() {
   const maxPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const paginatedReleases = filteredReleases.slice(
     (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
+    page * PAGE_SIZE,
   );
 
   const counts = {
@@ -146,14 +144,14 @@ export default function ReleasePage() {
             setReleases((prev) => prev.filter((r) => r.id !== release.id));
           },
         },
-      ]
+      ],
     );
   };
 
   const handleCreate = (type: ReleaseType) => {
     Alert.alert(
       `New ${type} release`,
-      "Hook this up to your form screen when it's ready."
+      "Hook this up to your form screen when it's ready.",
     );
   };
 
@@ -185,7 +183,11 @@ export default function ReleasePage() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 170 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 24,
+            paddingBottom: 170,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* ── HEADER ── */}
@@ -278,13 +280,19 @@ export default function ReleasePage() {
                   onPress={() => setViewMode("grid")}
                   className={`p-2 ${viewMode === "grid" ? "bg-slate-900" : "bg-slate-50"}`}
                 >
-                  <LayoutGrid size={16} color={viewMode === "grid" ? "#fff" : "#94a3b8"} />
+                  <LayoutGrid
+                    size={16}
+                    color={viewMode === "grid" ? "#fff" : "#94a3b8"}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setViewMode("list")}
                   className={`p-2 ${viewMode === "list" ? "bg-slate-900" : "bg-slate-50"}`}
                 >
-                  <ListIcon size={16} color={viewMode === "list" ? "#fff" : "#94a3b8"} />
+                  <ListIcon
+                    size={16}
+                    color={viewMode === "list" ? "#fff" : "#94a3b8"}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -294,13 +302,23 @@ export default function ReleasePage() {
               {filteredReleases.length === 0 ? (
                 <View className="items-center justify-center py-16 gap-2">
                   <Music size={36} color="#cbd5e1" />
-                  <Text className="font-medium text-slate-500">No releases found</Text>
+                  <Text className="font-medium text-slate-500">
+                    No releases found
+                  </Text>
                   <Text className="text-sm text-slate-400">
-                    {searchTerm ? "Try a different search term" : "Create your first release above"}
+                    {searchTerm
+                      ? "Try a different search term"
+                      : "Create your first release above"}
                   </Text>
                   {!!searchTerm && (
-                    <TouchableOpacity onPress={() => setSearchTerm("")} className="mt-1">
-                      <Text style={{ color: ACCENT }} className="text-sm font-medium">
+                    <TouchableOpacity
+                      onPress={() => setSearchTerm("")}
+                      className="mt-1"
+                    >
+                      <Text
+                        style={{ color: ACCENT }}
+                        className="text-sm font-medium"
+                      >
                         Clear search
                       </Text>
                     </TouchableOpacity>
@@ -334,7 +352,8 @@ export default function ReleasePage() {
               {totalCount > PAGE_SIZE && (
                 <View className="mt-5 pt-4 border-t border-slate-100 flex-row items-center justify-between">
                   <Text className="text-sm text-slate-400">
-                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} of {totalCount}
+                    {(page - 1) * PAGE_SIZE + 1}–
+                    {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount}
                   </Text>
                   <View className="flex-row gap-2">
                     <TouchableOpacity
@@ -397,7 +416,11 @@ function CreateActionCard({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity onPress={onPress} className="flex-1 min-w-[47%]" activeOpacity={0.85}>
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-1 min-w-[47%]"
+      activeOpacity={0.85}
+    >
       <LinearGradient
         colors={colors}
         start={{ x: 0, y: 0 }}
@@ -431,7 +454,10 @@ function TypeBadge({ type }: { type: ReleaseType }) {
   return (
     <View className="flex-row items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5">
       <Icon size={11} color={ACCENT} />
-      <Text style={{ color: ACCENT }} className="text-xs font-semibold capitalize">
+      <Text
+        style={{ color: ACCENT }}
+        className="text-xs font-semibold capitalize"
+      >
         {type}
       </Text>
     </View>
@@ -453,15 +479,23 @@ function ReleaseListItem({
       activeOpacity={0.8}
       className="flex-row items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3"
     >
-      <Image source={{ uri: release.cover_url }} className="h-14 w-14 rounded-lg" />
+      <Image
+        source={{ uri: release.cover_url }}
+        className="h-14 w-14 rounded-lg"
+      />
       <View className="flex-1">
         <View className="flex-row items-center justify-between">
-          <Text numberOfLines={1} className="text-slate-900 font-semibold flex-1 pr-2">
+          <Text
+            numberOfLines={1}
+            className="text-slate-900 font-semibold flex-1 pr-2"
+          >
             {release.title}
           </Text>
           <StatusBadge status={release.status} />
         </View>
-        <Text className="text-slate-500 text-sm mt-0.5">{release.primary_artist}</Text>
+        <Text className="text-slate-500 text-sm mt-0.5">
+          {release.primary_artist}
+        </Text>
         <View className="flex-row items-center gap-2 mt-1.5">
           <TypeBadge type={release.release_type} />
           <Text className="text-xs text-slate-400">{release.date}</Text>
@@ -494,7 +528,10 @@ function ReleaseGridItem({
       activeOpacity={0.85}
       className="w-[47%] rounded-xl border border-slate-100 bg-slate-50/50 p-3"
     >
-      <Image source={{ uri: release.cover_url }} className="h-28 w-full rounded-lg" />
+      <Image
+        source={{ uri: release.cover_url }}
+        className="h-28 w-full rounded-lg"
+      />
       <Text numberOfLines={1} className="text-slate-900 font-semibold mt-2">
         {release.title}
       </Text>
@@ -539,11 +576,18 @@ function ReleaseViewModal({
   onClose: () => void;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View className="flex-1 bg-black/40 justify-end">
         <View className="bg-white rounded-t-2xl max-h-[85%]">
           <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100">
-            <Text className="text-lg font-bold text-slate-900">Release Details</Text>
+            <Text className="text-lg font-bold text-slate-900">
+              Release Details
+            </Text>
             <TouchableOpacity onPress={onClose} className="p-1">
               <X size={20} color="#64748b" />
             </TouchableOpacity>
