@@ -14,8 +14,10 @@ import {
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Modal,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -24,52 +26,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
-
-/* ─────────────────────────────────────────
-   TYPES + STATIC DATA
-   Replace with GET /api/user/revenue and
-   GET /api/user/payout-history once wired up.
-───────────────────────────────────────── */
-
-type PayoutStatus = "approved" | "pending" | "rejected";
-type Role = "user" | "admin";
-
-interface Payout {
-  id: string;
-  date: string; // ISO
-  amount: number;
-  status: PayoutStatus;
-  notes?: string;
-}
-
-interface PlatformRevenue {
-  platform: string;
-  rawAmount: number;
-  color: string; // hex
-}
-
-const ROLE: Role = "user";
-
-const STATIC_STATS = {
-  totalRevenue: 18450.32,
-  lastTransaction: 1240.5,
-  outstandingBalance: 4230.1,
-};
-
-const STATIC_BREAKDOWN: PlatformRevenue[] = [
-  { platform: "Spotify", rawAmount: 9200, color: "#22c55e" },
-  { platform: "Apple Music", rawAmount: 5200, color: "#ec4899" },
-  { platform: "Amazon Music", rawAmount: 2400, color: "#0ea5e9" },
-  { platform: "Others", rawAmount: 1650, color: "#eab308" },
-];
-
-const STATIC_PAYOUTS: Payout[] = [
-  { id: "p1", date: "2026-07-02", amount: 620.0, status: "approved", notes: "Monthly payout" },
-  { id: "p2", date: "2026-06-14", amount: 340.5, status: "pending", notes: "Requested" },
-  { id: "p3", date: "2026-06-01", amount: 980.0, status: "approved", notes: "Monthly payout" },
-  { id: "p4", date: "2026-05-19", amount: 210.0, status: "rejected", notes: "Insufficient info" },
-  { id: "p5", date: "2025-12-08", amount: 1150.75, status: "approved", notes: "Monthly payout" },
-];
+import {
+  NormalizedPayout,
+  PayoutStatus,
+  useRevenueData,
+} from "../../hooks/useRevenueData"; // adjust path
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -93,11 +54,25 @@ export default function RevenuePage() {
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
 
-  const [payouts, setPayouts] = useState<Payout[]>(STATIC_PAYOUTS);
-  const [outstandingBalance, setOutstandingBalance] = useState(STATIC_STATS.outstandingBalance);
-
   const [showDialog, setShowDialog] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
+  const {
+    role,
+    totalRevenue,
+    lastTransaction,
+    outstandingBalance,
+    platformBreakdown,
+    breakdownTotal,
+    payouts,
+    payoutsLoading,
+    loading,
+    error,
+    submitting,
+    requestWithdrawal,
+    refetch,
+  } = useRevenueData();
 
   const filteredPayouts = useMemo(() => {
     return payouts.filter((p) => {
@@ -108,42 +83,60 @@ export default function RevenuePage() {
     });
   }, [payouts, month, year]);
 
-  const breakdownTotal = STATIC_BREAKDOWN.reduce((sum, p) => sum + p.rawAmount, 0);
-
-  const handleWithdrawConfirm = () => {
+  const handleWithdrawConfirm = async () => {
+    setDialogError(null);
     const amt = Number(withdrawAmount);
-    if (!amt || amt <= 0 || amt > outstandingBalance) return;
-    setOutstandingBalance((b) => b - amt);
-    setPayouts((prev) => [
-      { id: `p${Date.now()}`, date: new Date().toISOString(), amount: amt, status: "pending", notes: "Requested" },
-      ...prev,
-    ]);
-    setWithdrawAmount("");
-    setShowDialog(false);
+    if (!amt || amt <= 0) {
+      setDialogError("Enter a valid amount.");
+      return;
+    }
+    if (amt > outstandingBalance) {
+      setDialogError("Amount exceeds your available balance.");
+      return;
+    }
+
+    const result = await requestWithdrawal(amt);
+    if (result.success) {
+      setWithdrawAmount("");
+      setShowDialog(false);
+    } else {
+      setDialogError(result.message);
+    }
   };
 
   const statCards = [
     {
       title: "Total Revenue",
-      value: `$${STATIC_STATS.totalRevenue.toFixed(2)}`,
+      value: `$${totalRevenue.toFixed(2)}`,
       icon: DollarSign,
       color: "#059669",
     },
     {
       title: "Last Transaction",
-      value: `$${STATIC_STATS.lastTransaction.toFixed(2)}`,
+      value: `$${lastTransaction.toFixed(2)}`,
       icon: CalendarDays,
       color: "#6366f1",
     },
     {
-      title: ROLE === "user" ? "Outstanding Balance" : "Outstanding Commission",
+      title: role === "user" ? "Outstanding Balance" : "Outstanding Commission",
       value: `$${outstandingBalance.toFixed(2)}`,
-      icon: ROLE === "user" ? Clock : Wallet,
-      color: ROLE === "user" ? "#059669" : "#f59e0b",
+      icon: role === "user" ? Clock : Wallet,
+      color: role === "user" ? "#059669" : "#f59e0b",
       highlight: true,
-      subtitle: ROLE === "user" ? "Available for withdrawal." : "Commission you can withdraw.",
+      subtitle: role === "user" ? "Available for withdrawal." : "Commission you can withdraw.",
     },
   ];
+
+  if (loading && !totalRevenue) {
+    return (
+      <LinearGradient colors={["#F5F3FF", "#F8F8FC", "#FFFFFF"]} style={{ flex: 1 }}>
+        <SafeAreaView className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={ACCENT_TO} />
+          <Text className="text-sm text-slate-400 mt-3">Loading your revenue…</Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={["#F5F3FF", "#F8F8FC", "#FFFFFF"]} style={{ flex: 1 }}>
@@ -152,6 +145,9 @@ export default function RevenuePage() {
           <ScrollView
             contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 170 }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={ACCENT_TO} />
+            }
           >
             {/* ── HEADER ── */}
             <View className="flex-row items-start justify-between">
@@ -163,6 +159,12 @@ export default function RevenuePage() {
               </View>
             </View>
 
+            {error && (
+              <View className="mt-4 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                <Text className="text-xs text-red-500">{error}</Text>
+              </View>
+            )}
+
             <TouchableOpacity onPress={() => setShowDialog(true)} activeOpacity={0.85} className="mt-4 self-start">
               <LinearGradient
                 colors={[ACCENT_FROM, ACCENT_TO]}
@@ -173,7 +175,7 @@ export default function RevenuePage() {
                 <View className="flex-row items-center gap-2">
                   <Send size={16} color="#fff" />
                   <Text className="text-white text-sm font-semibold">
-                    {ROLE === "user" ? "Request Payout" : "Withdraw Commission"}
+                    {role === "user" ? "Request Payout" : "Withdraw Commission"}
                   </Text>
                 </View>
               </LinearGradient>
@@ -193,10 +195,11 @@ export default function RevenuePage() {
                   <View className="w-9 h-9 rounded-xl bg-indigo-100 items-center justify-center">
                     <Filter size={16} color="#4f46e5" />
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <Text className="text-base font-semibold text-slate-800">Payout History</Text>
                     <Text className="text-xs text-slate-400">Filter by month and year</Text>
                   </View>
+                  {payoutsLoading && <ActivityIndicator size="small" color="#4f46e5" />}
                 </View>
 
                 <View className="flex-row gap-2 mt-3">
@@ -231,17 +234,23 @@ export default function RevenuePage() {
               <Text className="text-xs text-slate-400 mb-4">
                 Earnings distributed across streaming services
               </Text>
-              <View className="gap-4">
-                {STATIC_BREAKDOWN.map((item) => (
-                  <PlatformBar
-                    key={item.platform}
-                    platform={item.platform}
-                    amount={item.rawAmount}
-                    percentage={(item.rawAmount / breakdownTotal) * 100}
-                    color={item.color}
-                  />
-                ))}
-              </View>
+              {platformBreakdown.length > 0 ? (
+                <View className="gap-4">
+                  {platformBreakdown.map((item) => (
+                    <PlatformBar
+                      key={item.platform}
+                      platform={item.platform}
+                      amount={item.rawAmount}
+                      percentage={breakdownTotal ? (item.rawAmount / breakdownTotal) * 100 : 0}
+                      color={item.color}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View className="items-center justify-center py-8">
+                  <Text className="text-xs text-slate-400">No revenue data yet</Text>
+                </View>
+              )}
             </View>
           </ScrollView>
 
@@ -252,12 +261,17 @@ export default function RevenuePage() {
       {/* ── WITHDRAW DIALOG ── */}
       <WithdrawDialog
         visible={showDialog}
-        onClose={() => setShowDialog(false)}
-        role={ROLE}
+        onClose={() => {
+          setShowDialog(false);
+          setDialogError(null);
+        }}
+        role={role}
         balance={outstandingBalance}
         amount={withdrawAmount}
         setAmount={setWithdrawAmount}
         onConfirm={handleWithdrawConfirm}
+        submitting={submitting}
+        errorMessage={dialogError}
       />
 
       {/* ── MONTH / YEAR PICKERS ── */}
@@ -400,7 +414,7 @@ function PickerModal({
   );
 }
 
-function PayoutRow({ payout }: { payout: Payout }) {
+function PayoutRow({ payout }: { payout: NormalizedPayout }) {
   const s = STATUS_STYLES[payout.status];
   const Icon = s.icon;
   const d = new Date(payout.date);
@@ -479,14 +493,18 @@ function WithdrawDialog({
   amount,
   setAmount,
   onConfirm,
+  submitting,
+  errorMessage,
 }: {
   visible: boolean;
   onClose: () => void;
-  role: Role;
+  role: "user" | "admin";
   balance: number;
   amount: string;
   setAmount: (v: string) => void;
   onConfirm: () => void;
+  submitting: boolean;
+  errorMessage: string | null;
 }) {
   const remaining = balance - (Number(amount) || 0);
   const isValid = !!amount && Number(amount) > 0 && remaining >= 0;
@@ -506,7 +524,7 @@ function WithdrawDialog({
               </Text>
               <Text className="text-xs text-slate-400">Funds processed within 3–5 days</Text>
             </View>
-            <TouchableOpacity onPress={onClose} className="p-1">
+            <TouchableOpacity onPress={onClose} className="p-1" disabled={submitting}>
               <X size={18} color="#94a3b8" />
             </TouchableOpacity>
           </View>
@@ -521,7 +539,7 @@ function WithdrawDialog({
 
           {/* Input */}
           <Text className="text-sm font-medium text-slate-700 mb-1.5">Amount to Withdraw</Text>
-          <View className="flex-row items-center border border-slate-200 rounded-xl px-3 mb-4">
+          <View className="flex-row items-center border border-slate-200 rounded-xl px-3 mb-2">
             <Text className="text-slate-400 font-semibold mr-1">$</Text>
             <TextInput
               value={amount}
@@ -529,9 +547,14 @@ function WithdrawDialog({
               keyboardType="decimal-pad"
               placeholder="0.00"
               placeholderTextColor="#cbd5e1"
+              editable={!submitting}
               className="flex-1 py-2.5 text-slate-800 text-sm"
             />
           </View>
+
+          {errorMessage && (
+            <Text className="text-xs text-red-500 mb-3">{errorMessage}</Text>
+          )}
 
           {/* Remaining */}
           <View
@@ -551,17 +574,18 @@ function WithdrawDialog({
           <View className="flex-row gap-3">
             <TouchableOpacity
               onPress={onClose}
+              disabled={submitting}
               className="flex-1 items-center px-4 py-2.5 rounded-xl border border-slate-200"
             >
               <Text className="text-slate-600 text-sm font-medium">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onConfirm}
-              disabled={!isValid}
+              disabled={!isValid || submitting}
               className="flex-1"
               activeOpacity={0.85}
             >
-              {isValid ? (
+              {isValid && !submitting ? (
                 <LinearGradient
                   colors={["#4f46e5", "#7c3aed"]}
                   start={{ x: 0, y: 0 }}
@@ -571,8 +595,11 @@ function WithdrawDialog({
                   <Text className="text-white text-sm font-semibold">Confirm</Text>
                 </LinearGradient>
               ) : (
-                <View className="rounded-xl py-2.5 items-center bg-slate-300">
-                  <Text className="text-white text-sm font-semibold">Confirm</Text>
+                <View className="rounded-xl py-2.5 items-center bg-slate-300 flex-row justify-center gap-2">
+                  {submitting && <ActivityIndicator size="small" color="#fff" />}
+                  <Text className="text-white text-sm font-semibold">
+                    {submitting ? "Submitting…" : "Confirm"}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
