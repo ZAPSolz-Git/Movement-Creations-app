@@ -13,7 +13,7 @@ import {
   Trash2,
   UserCircle,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,11 +26,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
+import { supabase } from "../../lib/supabaseClient";
 
 /* ─────────────────────────────────────────
    TYPES + STATIC DATA
-   Replace with your Supabase user/user_profiles
-   fetch + upsert once wired up on mobile.
 ───────────────────────────────────────── */
 
 type TabKey = "general" | "management" | "finance" | "password" | "contract" | "companylabels";
@@ -66,34 +65,36 @@ interface ProfileState {
   contract_status: string;
   plans: string[];
   company_labels: Label[];
+  company_labels_locked: boolean;
 }
 
 const INITIAL_PROFILE: ProfileState = {
-  legal_entity: "Movement Creations LLC",
-  cin_reg_no: "U72900MH2021PTC123456",
-  dob_doi: "2021-03-14",
-  registered_address: "12 Studio Lane, Mumbai, MH",
-  country: "India",
-  city: "Mumbai",
-  pincode: "400001",
+  legal_entity: "",
+  cin_reg_no: "",
+  dob_doi: "",
+  registered_address: "",
+  country: "",
+  city: "",
+  pincode: "",
   correspondence_address: "",
   correspondence_pincode: "",
-  pan_status: "Verified",
-  name_on_pan: "Movement Creations LLC",
-  pan_number: "ABCDE1234F",
-  gst_number: "27ABCDE1234F1Z5",
-  gst_state: "Maharashtra",
-  bank_name: "HDFC Bank",
-  bank_address: "Fort Branch, Mumbai",
-  bank_account_name: "Movement Creations LLC",
-  bank_account_number: "50100123456789",
-  ifsc_code: "HDFC0000123",
-  swift_code: "HDFCINBB",
-  contract_start_date: "2025-01-01",
-  contract_end_date: "2026-12-31",
-  contract_status: "Active",
-  plans: ["pro"],
-  company_labels: [{ id: "l1", name: "Movement Creations" }],
+  pan_status: "",
+  name_on_pan: "",
+  pan_number: "",
+  gst_number: "",
+  gst_state: "",
+  bank_name: "",
+  bank_address: "",
+  bank_account_name: "",
+  bank_account_number: "",
+  ifsc_code: "",
+  swift_code: "",
+  contract_start_date: "",
+  contract_end_date: "",
+  contract_status: "",
+  plans: ["starter"],
+  company_labels: [],
+  company_labels_locked: false,
 };
 
 const TABS_CONFIG: { value: TabKey; label: string; icon: any }[] = [
@@ -140,33 +141,372 @@ const CONTRACT_FIELDS = [
   { name: "contract_status", label: "Contract Status" },
 ] as const;
 
+const USER_FIELDS = [
+  "full_name",
+  "contact_number",
+  "account_number",
+  "bank_name",
+  "bank_address",
+  "ifsc_code",
+  "swift_code",
+  "registered_address",
+];
+
+const PROFILE_FIELDS = [
+  "legal_entity",
+  "cin_reg_no",
+  "dob_doi",
+  "country",
+  "city",
+  "pincode",
+  "correspondence_address",
+  "correspondence_pincode",
+  "authorized_signatory",
+  "pan_status",
+  "name_on_pan",
+  "pan_number",
+  "gst_number",
+  "gst_state",
+  "youtube_channel_name",
+  "youtube_url",
+  "contract_start_date",
+  "contract_end_date",
+  "contract_status",
+  "plans",
+  "company_labels",
+  "company_labels_locked",
+];
+
 const PLAN_LIMITS: Record<string, number> = { starter: 1, pro: 2, labels: 5 };
 const ACCENT = "#ec5b13";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileState>(INITIAL_PROFILE);
+  const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("general");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Password States
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    setIsLoading(true);
+    try {
+      const [{ data: userData }, { data: profileData }] = await Promise.all([
+        supabase.from("users").select("*").eq("id", userId).maybeSingle(),
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle(),
+      ]);
+
+      const labels = Array.isArray(profileData?.company_labels)
+        ? profileData.company_labels
+        : [];
+
+      const mergedData = {
+        ...INITIAL_PROFILE,
+        ...(userData || {}),
+        ...(profileData || {}),
+        company_labels: labels,
+        company_labels_locked: profileData?.company_labels_locked || false,
+      };
+
+      setProfile({
+        ...mergedData,
+        dob_doi: mergedData.dob_doi
+          ? String(mergedData.dob_doi).split("T")[0]
+          : "",
+        contract_start_date: mergedData.contract_start_date
+          ? String(mergedData.contract_start_date).split("T")[0]
+          : "",
+        contract_end_date: mergedData.contract_end_date
+          ? String(mergedData.contract_end_date).split("T")[0]
+          : "",
+        company_labels: labels.map((l: any) =>
+          typeof l === "string"
+            ? { id: crypto.randomUUID(), name: l }
+            : {
+                id: l.id || crypto.randomUUID(),
+                name: l.name || "",
+              }
+        ),
+      });
+    } catch (err) {
+      Alert.alert("Error", err instanceof Error ? err.message : "Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const getCurrentUser = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (authUser && isMounted) {
+        setUser(authUser);
+        fetchProfile(authUser.id);
+      } else {
+        setIsLoading(false);
+      }
+    };
+    getCurrentUser();
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchProfile]);
+
+  const getCompanyLimit = () => {
+    if (profile.plans?.includes("labels")) return 5;
+    if (profile.plans?.includes("pro")) return 2;
+    return 1;
+  };
+
+  const updateCompanyLabel = (index: number, value: string) => {
+    setProfile((prev) => {
+      const labels = [...prev.company_labels];
+      labels[index] = {
+        ...labels[index],
+        name: value,
+      };
+      return { ...prev, company_labels: labels };
+    });
+  };
+
+  const removeCompanyLabel = (index: number) => {
+    setProfile((prev) => ({
+      ...prev,
+      company_labels: prev.company_labels.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addCompanyLabel = () => {
+    const limit = getCompanyLimit();
+    if (profile.company_labels.length >= limit) {
+      Alert.alert("Plan Limit", `Your plan allows only ${limit} label(s)`);
+      return;
+    }
+    setProfile((prev) => ({
+      ...prev,
+      company_labels: [
+        ...prev.company_labels,
+        {
+          id: crypto.randomUUID(),
+          name: "",
+        },
+      ],
+    }));
+  };
 
   const handleFieldChange = (field: string, lockable: boolean | undefined, value: string) => {
     const current = (profile as any)[field];
+    
+    // Check if field is lockable and already has a value
     if (lockable && current && String(current).trim() !== "") {
       Alert.alert("Locked field", "This field can only be set once and cannot be modified later.");
       return;
     }
+    
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleConfirmSave = () => {
-    setIsSaving(true);
-    // Replace with your Supabase upsert to `users` + `user_profiles`
-    setTimeout(() => {
-      setIsSaving(false);
-      setShowConfirmDialog(false);
-      Alert.alert("Saved", "Profile saved successfully!");
-    }, 900);
+  const handlePasswordInputChange = (field: string, value: string) => {
+    setPasswordData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleGeneratePassword = () => {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let retVal = "";
+    for (let i = 0; i < 12; ++i) {
+      retVal += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    setPasswordData({
+      oldPassword: passwordData.oldPassword,
+      newPassword: retVal,
+      confirmNewPassword: retVal,
+    });
+    Alert.alert("Success", "Password generated successfully!");
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      Alert.alert("Mismatch", "New password and confirm password do not match.");
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      Alert.alert("Too short", "Password must be at least 6 characters long.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      // Verify old password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordData.oldPassword,
+      });
+
+      if (signInError) {
+        throw new Error("Old password is incorrect.");
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (updateError) throw updateError;
+
+      Alert.alert("Success", "Password changed successfully!");
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      setShowOldPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    } catch (err) {
+      Alert.alert("Error", err instanceof Error ? err.message : "Unexpected error occurred.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    
+    const sanitize = (obj: any) => {
+      const cleaned: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === "string" && value.trim() === "")
+          cleaned[key] = null;
+        else if (Array.isArray(value)) {
+          cleaned[key] = value
+            .filter((item) =>
+              typeof item === "object"
+                ? Object.values(item).some((v) => String(v).trim() !== "")
+                : String(item).trim() !== "",
+            )
+            .map((item) =>
+              typeof item === "object"
+                ? Object.fromEntries(
+                    Object.entries(item).map(([k, v]) => [
+                      k,
+                      typeof v === "string" && v.trim() === "" ? null : v,
+                    ])
+                  )
+                : item
+            );
+        } else cleaned[key] = value;
+      }
+      return cleaned;
+    };
+
+    try {
+      let { data: existingUser } = await supabase
+        .from("users")
+        .select("id, admin_id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!existingUser) {
+        const { data: adminRecord } = await supabase
+          .from("admins")
+          .select("id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (adminRecord) {
+          await supabase.from("users").upsert(
+            {
+              id: user.id,
+              email: user.email,
+              role: "admin",
+              status: "approved",
+              admin_id: adminRecord.id,
+            },
+            { onConflict: "id" }
+          );
+          existingUser = { id: user.id, admin_id: adminRecord.id };
+        } else {
+          await supabase.from("users").upsert(
+            {
+              id: user.id,
+              email: user.email,
+              role: "user",
+              status: "pending",
+            },
+            { onConflict: "id" }
+          );
+          existingUser = { id: user.id, admin_id: null };
+        }
+      }
+
+      const sanitizedProfile = sanitize(profile);
+      const userPayload = Object.fromEntries(
+        Object.entries(sanitizedProfile).filter(([key]) =>
+          USER_FIELDS.includes(key)
+        )
+      );
+
+      const profilePayload = {
+        ...Object.fromEntries(
+          Object.entries(sanitizedProfile).filter(([key]) =>
+            PROFILE_FIELDS.includes(key)
+          )
+        ),
+        company_labels: profile.company_labels,
+        company_labels_locked: false,
+        id: user.id,
+        admin_id: existingUser?.admin_id || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error: userUpdateError } = await supabase
+        .from("users")
+        .update(userPayload)
+        .eq("id", user.id);
+
+      if (userUpdateError) throw userUpdateError;
+
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .upsert(profilePayload, {
+          onConflict: "id",
+        });
+
+      if (profileError) throw profileError;
+
+      Alert.alert("Success", "Profile saved successfully!");
+      setShowConfirmDialog(false);
+    } catch (err) {
+      Alert.alert("Error", err instanceof Error ? err.message : "Unexpected error occurred.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={ACCENT} />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#FFF8F1", "#F8F8FC", "#FFFFFF"]} style={{ flex: 1 }}>
@@ -228,13 +568,35 @@ export default function ProfilePage() {
 
               {activeTab === "management" && <ManagementTab profile={profile} onChange={handleFieldChange} />}
 
-              {activeTab === "password" && <PasswordTab />}
+              {activeTab === "password" && (
+                <PasswordTab
+                  passwordData={passwordData}
+                  onPasswordChange={handlePasswordInputChange}
+                  onGeneratePassword={handleGeneratePassword}
+                  onChangePassword={handleChangePassword}
+                  isChangingPassword={isChangingPassword}
+                  showOldPassword={showOldPassword}
+                  setShowOldPassword={setShowOldPassword}
+                  showNewPassword={showNewPassword}
+                  setShowNewPassword={setShowNewPassword}
+                  showConfirmPassword={showConfirmPassword}
+                  setShowConfirmPassword={setShowConfirmPassword}
+                />
+              )}
 
               {activeTab === "contract" && (
                 <ProfileSection title="Contract Details" fields={CONTRACT_FIELDS} profile={profile} onChange={handleFieldChange} />
               )}
 
-              {activeTab === "companylabels" && <MusicLabelsTab profile={profile} setProfile={setProfile} />}
+              {activeTab === "companylabels" && (
+                <MusicLabelsTab
+                  profile={profile}
+                  onAddLabel={addCompanyLabel}
+                  onUpdateLabel={updateCompanyLabel}
+                  onRemoveLabel={removeCompanyLabel}
+                  getCompanyLimit={getCompanyLimit}
+                />
+              )}
             </View>
           </ScrollView>
 
@@ -258,7 +620,7 @@ export default function ProfilePage() {
                 <Text className="text-slate-600 text-sm font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={handleConfirmSave}
+                onPress={handleSaveProfile}
                 disabled={isSaving}
                 className="flex-1 items-center px-4 py-2.5 rounded-xl flex-row justify-center gap-2"
                 style={{ backgroundColor: ACCENT }}
@@ -437,71 +799,71 @@ function PasswordField({
   );
 }
 
-function PasswordTab() {
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showOld, setShowOld] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [isChanging, setIsChanging] = useState(false);
-
-  const generatePassword = () => {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-    let out = "";
-    for (let i = 0; i < 12; i++) out += charset.charAt(Math.floor(Math.random() * charset.length));
-    setNewPassword(out);
-    setConfirmPassword(out);
-  };
-
-  const handleChangePassword = () => {
-    if (newPassword !== confirmPassword) {
-      Alert.alert("Mismatch", "New password and confirm password do not match.");
-      return;
-    }
-    if (newPassword.length < 6) {
-      Alert.alert("Too short", "Password must be at least 6 characters long.");
-      return;
-    }
-    setIsChanging(true);
-    // Replace with supabase.auth.updateUser({ password: newPassword })
-    setTimeout(() => {
-      setIsChanging(false);
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      Alert.alert("Success", "Password changed successfully!");
-    }, 800);
-  };
-
+function PasswordTab({
+  passwordData,
+  onPasswordChange,
+  onGeneratePassword,
+  onChangePassword,
+  isChangingPassword,
+  showOldPassword,
+  setShowOldPassword,
+  showNewPassword,
+  setShowNewPassword,
+  showConfirmPassword,
+  setShowConfirmPassword,
+}: {
+  passwordData: { oldPassword: string; newPassword: string; confirmNewPassword: string };
+  onPasswordChange: (field: string, value: string) => void;
+  onGeneratePassword: () => void;
+  onChangePassword: () => void;
+  isChangingPassword: boolean;
+  showOldPassword: boolean;
+  setShowOldPassword: (v: boolean) => void;
+  showNewPassword: boolean;
+  setShowNewPassword: (v: boolean) => void;
+  showConfirmPassword: boolean;
+  setShowConfirmPassword: (v: boolean) => void;
+}) {
   return (
     <View>
       <Text className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">Change Password</Text>
 
-      <PasswordField label="Current Password" value={oldPassword} onChangeText={setOldPassword} show={showOld} onToggleShow={() => setShowOld((s) => !s)} />
-      <PasswordField label="New Password" value={newPassword} onChangeText={setNewPassword} show={showNew} onToggleShow={() => setShowNew((s) => !s)} />
+      <PasswordField
+        label="Current Password"
+        value={passwordData.oldPassword}
+        onChangeText={(v) => onPasswordChange("oldPassword", v)}
+        show={showOldPassword}
+        onToggleShow={() => setShowOldPassword(!showOldPassword)}
+      />
+      <PasswordField
+        label="New Password"
+        value={passwordData.newPassword}
+        onChangeText={(v) => onPasswordChange("newPassword", v)}
+        show={showNewPassword}
+        onToggleShow={() => setShowNewPassword(!showNewPassword)}
+      />
       <PasswordField
         label="Confirm New Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        show={showConfirm}
-        onToggleShow={() => setShowConfirm((s) => !s)}
+        value={passwordData.confirmNewPassword}
+        onChangeText={(v) => onPasswordChange("confirmNewPassword", v)}
+        show={showConfirmPassword}
+        onToggleShow={() => setShowConfirmPassword(!showConfirmPassword)}
       />
 
       <View className="flex-row flex-wrap gap-3 mt-2">
-        <TouchableOpacity onPress={generatePassword} className="flex-row items-center gap-1.5 border border-slate-300 rounded-lg px-3.5 py-2.5">
+        <TouchableOpacity onPress={onGeneratePassword} className="flex-row items-center gap-1.5 border border-slate-300 rounded-lg px-3.5 py-2.5">
           <RefreshCw size={14} color="#475569" />
           <Text className="text-sm font-medium text-slate-600">Generate Password</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={handleChangePassword}
-          disabled={isChanging}
+          onPress={onChangePassword}
+          disabled={isChangingPassword}
           className="flex-row items-center gap-1.5 rounded-lg px-3.5 py-2.5"
           style={{ backgroundColor: ACCENT }}
         >
-          {isChanging ? <ActivityIndicator size="small" color="#fff" /> : <Save size={14} color="#fff" />}
-          <Text className="text-white text-sm font-semibold">{isChanging ? "Updating..." : "Change Password"}</Text>
+          {isChangingPassword ? <ActivityIndicator size="small" color="#fff" /> : <Save size={14} color="#fff" />}
+          <Text className="text-white text-sm font-semibold">{isChangingPassword ? "Updating..." : "Change Password"}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -510,56 +872,63 @@ function PasswordTab() {
 
 function MusicLabelsTab({
   profile,
-  setProfile,
+  onAddLabel,
+  onUpdateLabel,
+  onRemoveLabel,
+  getCompanyLimit,
 }: {
   profile: ProfileState;
-  setProfile: React.Dispatch<React.SetStateAction<ProfileState>>;
+  onAddLabel: () => void;
+  onUpdateLabel: (index: number, value: string) => void;
+  onRemoveLabel: (index: number) => void;
+  getCompanyLimit: () => number;
 }) {
-  const getLimit = () => {
-    if (profile.plans.includes("labels")) return PLAN_LIMITS.labels;
-    if (profile.plans.includes("pro")) return PLAN_LIMITS.pro;
-    return PLAN_LIMITS.starter;
-  };
-
-  const addLabel = () => {
-    const limit = getLimit();
-    if (profile.company_labels.length >= limit) {
-      Alert.alert("Plan limit reached", `Your plan allows only ${limit} label(s).`);
-      return;
-    }
-    setProfile((prev) => ({
-      ...prev,
-      company_labels: [...prev.company_labels, { id: `l${Date.now()}`, name: "" }],
-    }));
-  };
+  const limit = getCompanyLimit();
+  const atLimit = profile.company_labels.length >= limit;
 
   return (
     <View>
       <Text className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">Music Labels</Text>
+      <Text className="text-xs text-slate-500 mb-3">
+        {profile.company_labels.length} of {limit} labels used
+      </Text>
 
       <View className="gap-2.5 mb-3">
         {profile.company_labels.map((label, i) => (
           <View key={label.id} className="flex-row items-center gap-2">
             <TextInput
               value={label.name}
-              editable={false}
+              onChangeText={(v) => onUpdateLabel(i, v)}
               placeholder={`Music Label ${i + 1}`}
               placeholderTextColor="#cbd5e1"
-              className="flex-1 rounded-lg px-3 py-2.5 text-sm border border-slate-200 bg-slate-100 text-slate-400"
+              className="flex-1 rounded-lg px-3 py-2.5 text-sm border border-slate-300 bg-white text-slate-900"
             />
-            <View className="p-2.5 rounded-lg bg-red-200 opacity-50">
+            <TouchableOpacity 
+              onPress={() => onRemoveLabel(i)}
+              className="p-2.5 rounded-lg bg-red-100"
+            >
               <Trash2 size={15} color="#dc2626" />
-            </View>
+            </TouchableOpacity>
           </View>
         ))}
       </View>
 
-      <TouchableOpacity onPress={addLabel} className="flex-row items-center gap-1.5 self-start border rounded-lg px-3.5 py-2.5" style={{ borderColor: ACCENT }}>
+      <TouchableOpacity 
+        onPress={onAddLabel} 
+        disabled={atLimit}
+        className={`flex-row items-center gap-1.5 self-start border rounded-lg px-3.5 py-2.5 ${atLimit ? 'opacity-50' : ''}`}
+        style={{ borderColor: ACCENT }}
+      >
         <PlusCircle size={14} color={ACCENT} />
         <Text style={{ color: ACCENT }} className="text-sm font-medium">
           Add Music Label
         </Text>
       </TouchableOpacity>
+      {atLimit && (
+        <Text className="text-xs text-slate-500 mt-1">
+          You've reached the limit of {limit} labels for your current plan
+        </Text>
+      )}
     </View>
   );
 }
