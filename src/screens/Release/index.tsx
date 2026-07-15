@@ -37,7 +37,7 @@ import Footer from "../../components/Footer";
    backend is wired up on mobile.
 ───────────────────────────────────────── */
 
-type ReleaseType = "audio"  | "ringtone";
+type ReleaseType = "audio" |  "ringtone";
 
 interface Release {
   id: string;
@@ -55,10 +55,10 @@ const STATIC_RELEASES: Release[] = [
   { id: "1", title: "Midnight Echoes", release_type: "audio", primary_artist: "Nova Reyes", status: "Live", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "Oct 12, 2024", label: "Movement Creations", isrc: "INMC42400001" },
   { id: "2", title: "Summer Vibes", release_type: "ringtone", primary_artist: "DJ Kairo", status: "Draft", cover_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", date: "Sep 24, 2024", label: "Movement Creations" },
   { id: "3", title: "Morning Alarm", release_type: "ringtone", primary_artist: "Nova Reyes", status: "Review", cover_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80", date: "Aug 11, 2024" },
-//   { id: "4", title: "Neon Skyline", release_type: "video", primary_artist: "TUNERAAGA", status: "Live", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 30, 2024", isrc: "INMC42400004" },
+  { id: "4", title: "Neon Skyline", release_type: "audio", primary_artist: "TUNERAAGA", status: "Live", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 30, 2024", isrc: "INMC42400004" },
   { id: "5", title: "Silent Static", release_type: "audio", primary_artist: "Nova Reyes", status: "Rejected", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 02, 2024" },
   { id: "6", title: "Golden Hour", release_type: "audio", primary_artist: "Ari Vale", status: "Live", cover_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", date: "Jun 18, 2024" },
-//   { id: "7", title: "City Lights", release_type: "video", primary_artist: "TUNERAAGA", status: "Draft", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "May 27, 2024" },
+  { id: "7", title: "City Lights", release_type: "audio", primary_artist: "TUNERAAGA", status: "Draft", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "May 27, 2024" },
   { id: "8", title: "Wave Rider", release_type: "ringtone", primary_artist: "DJ Kairo", status: "Live", cover_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80", date: "May 02, 2024" },
 ];
 
@@ -68,7 +68,6 @@ const ACCENT = "#ec5b13";
 const TAB_CONFIG: { value: "all" | ReleaseType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "audio", label: "Audio" },
- 
   { value: "ringtone", label: "Ringtone" },
 ];
 
@@ -81,7 +80,6 @@ const STATUS_STYLES: Record<Release["status"], { bg: string; text: string }> = {
 
 const TYPE_ICON: Record<ReleaseType, any> = {
   audio: Music,
-
   ringtone: PhoneOutgoing,
 };
 
@@ -121,7 +119,7 @@ export default function ReleasePage() {
 
   const counts = {
     audio: releases.filter((r) => r.release_type === "audio").length,
-  
+
     ringtone: releases.filter((r) => r.release_type === "ringtone").length,
   };
 
@@ -218,7 +216,7 @@ export default function ReleasePage() {
               colors={["#f43f5e", "#ec4899", "#9333ea"]}
               onPress={() => handleCreate("audio")}
             />
-          
+      
             <CreateActionCard
               title="New Ringtone"
               description="Ringtones for mobile"
