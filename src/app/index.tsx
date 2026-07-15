@@ -15,19 +15,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { apiClient } from "../lib/apiClient";
 import { supabase } from "../lib/supabaseClient";
 import { tokenStorage } from "../lib/tokenStorage";
 
-interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user: {
-    id: string;
-    email: string;
-    [key: string]: unknown;
-  };
-  message?: string;
+interface FormErrors {
+  email?: string;
+  password?: string;
 }
 
 interface FormErrors {
@@ -67,35 +60,34 @@ export default function Login() {
     if (!validate()) return;
 
     setLoading(true);
+
     try {
-      const { data } = await apiClient.post<LoginResponse>("/api/login", {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
 
-      if (!data?.access_token || !data?.refresh_token) {
-        throw new Error(data?.message || "Invalid credentials");
+      if (error || !data?.session) {
+        throw new Error(error?.message || "Invalid credentials");
       }
 
-      const { error: sessionErr } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-      if (sessionErr) throw new Error("Could not establish session.");
-
+      const sessionData = data.session;
       await tokenStorage.setTokens({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
+        accessToken: sessionData.access_token,
+        refreshToken: sessionData.refresh_token,
       });
-      await tokenStorage.setUser(data.user);
+      await tokenStorage.setUser(
+        sessionData.user as unknown as {
+          id: string;
+          email: string;
+          [key: string]: unknown;
+        },
+      );
 
       router.replace("/home");
     } catch (err: any) {
       const message =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Login failed. Please check your credentials.";
+        err?.message || "Login failed. Please check your credentials.";
       setServerError(message);
     } finally {
       setLoading(false);
