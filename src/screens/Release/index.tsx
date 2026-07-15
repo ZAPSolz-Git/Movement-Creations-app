@@ -16,6 +16,7 @@ import {
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -28,37 +29,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
 
+import { Release, ReleaseType, useReleasesData } from "@/hooks/useReleaseData";
+import { apiClient } from "../../lib/apiClient"; // ⚠️ adjust path if needed
+
 /* ─────────────────────────────────────────
-   TYPES + STATIC DATA
-   Replace this array with your real fetch
-   (e.g. GET /api/submissions) whenever the
-   backend is wired up on mobile.
+   CONFIG
 ───────────────────────────────────────── */
-
-type ReleaseType = "audio" |  "ringtone";
-
-interface Release {
-  id: string;
-  title: string;
-  release_type: ReleaseType;
-  primary_artist: string;
-  status: "Live" | "Draft" | "Review" | "Rejected";
-  cover_url: string;
-  date: string;
-  label?: string;
-  isrc?: string;
-}
-
-const STATIC_RELEASES: Release[] = [
-  { id: "1", title: "Midnight Echoes", release_type: "audio", primary_artist: "Nova Reyes", status: "Live", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "Oct 12, 2024", label: "Movement Creations", isrc: "INMC42400001" },
-  { id: "2", title: "Summer Vibes", release_type: "ringtone", primary_artist: "DJ Kairo", status: "Draft", cover_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", date: "Sep 24, 2024", label: "Movement Creations" },
-  { id: "3", title: "Morning Alarm", release_type: "ringtone", primary_artist: "Nova Reyes", status: "Review", cover_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80", date: "Aug 11, 2024" },
-  { id: "4", title: "Neon Skyline", release_type: "audio", primary_artist: "TUNERAAGA", status: "Live", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 30, 2024", isrc: "INMC42400004" },
-  { id: "5", title: "Silent Static", release_type: "audio", primary_artist: "Nova Reyes", status: "Rejected", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80", date: "Jul 02, 2024" },
-  { id: "6", title: "Golden Hour", release_type: "audio", primary_artist: "Ari Vale", status: "Live", cover_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", date: "Jun 18, 2024" },
-  { id: "7", title: "City Lights", release_type: "audio", primary_artist: "TUNERAAGA", status: "Draft", cover_url: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80", date: "May 27, 2024" },
-  { id: "8", title: "Wave Rider", release_type: "ringtone", primary_artist: "DJ Kairo", status: "Live", cover_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80", date: "May 02, 2024" },
-];
 
 const PAGE_SIZE = 5;
 const ACCENT = "#ec5b13";
@@ -86,16 +62,15 @@ export default function ReleasePage() {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [releases, setReleases] = useState<Release[]>(STATIC_RELEASES);
   const [viewingRelease, setViewingRelease] = useState<Release | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  /* ── same filtering logic as web ── */
+  /* ── live data from backend ── */
+  const { releases, loading, error, refetch } = useReleasesData(activeTab);
+
+  /* ── search filter only (type filtering already done server-side) ── */
   const filteredReleases = useMemo(() => {
     let result = releases;
-    if (activeTab !== "all") {
-      result = result.filter((r) => r.release_type === activeTab);
-    }
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       result = result.filter(
@@ -105,9 +80,9 @@ export default function ReleasePage() {
       );
     }
     return result;
-  }, [releases, activeTab, searchTerm]);
+  }, [releases, searchTerm]);
 
-  /* ── same pagination logic as web ── */
+  /* ── same pagination logic as before ── */
   const totalCount = filteredReleases.length;
   const maxPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const paginatedReleases = filteredReleases.slice(
@@ -117,7 +92,6 @@ export default function ReleasePage() {
 
   const counts = {
     audio: releases.filter((r) => r.release_type === "audio").length,
-
     ringtone: releases.filter((r) => r.release_type === "ringtone").length,
   };
 
@@ -140,8 +114,14 @@ export default function ReleasePage() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            setReleases((prev) => prev.filter((r) => r.id !== release.id));
+          onPress: async () => {
+            try {
+              await apiClient.delete(`/api/submissions/${release.id}`); // ⚠️ confirm this endpoint exists
+              refetch();
+            } catch (err) {
+              console.error("Failed to delete release", err);
+              Alert.alert("Error", "Couldn't delete this release. Try again.");
+            }
           },
         },
       ],
@@ -218,7 +198,7 @@ export default function ReleasePage() {
               colors={["#f43f5e", "#ec4899", "#9333ea"]}
               onPress={() => handleCreate("audio")}
             />
-      
+
             <CreateActionCard
               title="New Ringtone"
               description="Ringtones for mobile"
@@ -299,7 +279,32 @@ export default function ReleasePage() {
 
             {/* List / grid */}
             <View className="p-4">
-              {filteredReleases.length === 0 ? (
+              {loading ? (
+                <View className="items-center justify-center py-16 gap-2">
+                  <ActivityIndicator size="small" color={ACCENT} />
+                  <Text className="text-sm text-slate-500">
+                    Loading releases…
+                  </Text>
+                </View>
+              ) : error ? (
+                <View className="items-center justify-center py-16 gap-2">
+                  <Music size={36} color="#cbd5e1" />
+                  <Text className="font-medium text-slate-500">
+                    Unable to load releases
+                  </Text>
+                  <Text className="text-sm text-slate-400 text-center">
+                    {error}
+                  </Text>
+                  <TouchableOpacity onPress={refetch} className="mt-1">
+                    <Text
+                      style={{ color: ACCENT }}
+                      className="text-sm font-medium"
+                    >
+                      Try Again
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : filteredReleases.length === 0 ? (
                 <View className="items-center justify-center py-16 gap-2">
                   <Music size={36} color="#cbd5e1" />
                   <Text className="font-medium text-slate-500">
@@ -349,7 +354,7 @@ export default function ReleasePage() {
               )}
 
               {/* Pagination */}
-              {totalCount > PAGE_SIZE && (
+              {!loading && !error && totalCount > PAGE_SIZE && (
                 <View className="mt-5 pt-4 border-t border-slate-100 flex-row items-center justify-between">
                   <Text className="text-sm text-slate-400">
                     {(page - 1) * PAGE_SIZE + 1}–
