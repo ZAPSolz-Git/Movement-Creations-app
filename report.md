@@ -1,4 +1,5 @@
 # Production-Grade Audit Report
+
 ## Movement Creations — Expo / React Native App
 
 **Audit Date:** July 15, 2026
@@ -13,14 +14,14 @@
 
 ## Executive Summary
 
-| Category | Total | Fixed ✅ | Remaining ❌ |
-|---|---|---|---|
-| 🔐 Security | 9 | 2 (1 partial) | 7 |
-| ⚡ Performance | 7 | 2 | 5 |
-| 🏗️ Architecture | 8 | 2 | 6 |
-| 🧪 Code Quality | 6 | 0 | 6 |
-| 🚀 DevOps / CI | 4 | 0 | 4 |
-| **Total** | **34** | **6 ✅** | **28 ❌** |
+| Category        | Total  | Fixed ✅      | Remaining ❌ |
+| --------------- | ------ | ------------- | ------------ |
+| 🔐 Security     | 9      | 2 (1 partial) | 7            |
+| ⚡ Performance  | 7      | 2             | 5            |
+| 🏗️ Architecture | 8      | 2             | 6            |
+| 🧪 Code Quality | 6      | 0             | 6            |
+| 🚀 DevOps / CI  | 4      | 0             | 4            |
+| **Total**       | **34** | **6 ✅**      | **28 ❌**    |
 
 ---
 
@@ -28,7 +29,7 @@
 
 ---
 
-### ✅ CRIT-SEC-01 — Real Secrets Committed to Repository *(Partially Fixed)*
+### ✅ CRIT-SEC-01 — Real Secrets Committed to Repository _(Partially Fixed)_
 
 **Severity:** CRITICAL
 **File:** `.env` · `.gitignore`
@@ -36,6 +37,7 @@
 **Status:** `.env` has been added to `.gitignore` — future commits will no longer track this file.
 
 **STILL REQUIRED:**
+
 1. **Rotate all three secrets immediately** — the `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_JWT_SECRET` are already in git history. Anyone who cloned the repo before this fix has them.
    - Go to: Supabase Dashboard → Settings → API → Rotate anon key
    - Go to: Supabase Dashboard → Settings → API → Rotate JWT secret
@@ -79,13 +81,18 @@ src/app/
 
 ```tsx
 // src/app/(protected)/_layout.tsx
-import { Redirect, Stack } from 'expo-router';
-import { useAuth } from '../../contexts/SupabaseAuthContext';
-import { ActivityIndicator, View } from 'react-native';
+import { Redirect, Stack } from "expo-router";
+import { useAuth } from "../../contexts/SupabaseAuthContext";
+import { ActivityIndicator, View } from "react-native";
 
 export default function ProtectedLayout() {
   const { session, loading } = useAuth();
-  if (loading) return <View style={{ flex: 1 }}><ActivityIndicator /></View>;
+  if (loading)
+    return (
+      <View style={{ flex: 1 }}>
+        <ActivityIndicator />
+      </View>
+    );
   if (!session) return <Redirect href="/" />;
   return <Stack screenOptions={{ headerShown: false }} />;
 }
@@ -93,7 +100,7 @@ export default function ProtectedLayout() {
 
 ---
 
-### ✅ CRIT-SEC-03 — Duplicate & Diverged Sign-In Logic *(FIXED)*
+### ✅ CRIT-SEC-03 — Duplicate & Diverged Sign-In Logic _(FIXED)_
 
 **Severity:** CRITICAL
 **Files:** `src/app/index.tsx` · `src/contexts/SupabaseAuthContext.tsx`
@@ -111,6 +118,7 @@ export default function ProtectedLayout() {
 The `SUPABASE_JWT_SECRET` key in `.env` is a server-side JWT signing secret. The Dockerfile copies the entire project directory — including `.env` — into the image with `COPY . .`, baking the secret into every Docker layer. A JWT signing secret that leaks can be used to forge valid session tokens for **any user**.
 
 **Fix:**
+
 1. Remove `SUPABASE_JWT_SECRET` from `.env` now.
 2. Add it only to your backend server's environment (Railway/Render dashboard, AWS Secrets Manager, etc.).
 3. Add a `.dockerignore` entry:
@@ -144,6 +152,7 @@ Switch to Supabase's PKCE auth flow for web, which manages tokens in `httpOnly` 
 **File:** `src/app/home.tsx` — lines 50–52
 
 **Problem:**
+
 ```tsx
 // Current — INSECURE
 const handleLogout = () => {
@@ -154,15 +163,16 @@ const handleLogout = () => {
 This only navigates away. It does **not** call `supabase.auth.signOut()`, does not clear tokens from SecureStore, and does not invalidate the server session. Pressing the Android back button after logout navigates back to the dashboard with the live session still active in memory.
 
 **Fix:**
+
 ```tsx
-import { useAuth } from '../contexts/SupabaseAuthContext';
+import { useAuth } from "../contexts/SupabaseAuthContext";
 
 // Inside HomePage:
 const { signOut } = useAuth();
 
 const handleLogout = async () => {
   await signOut(); // clears SecureStore + signs out Supabase
-  router.replace('/');
+  router.replace("/");
 };
 ```
 
@@ -174,6 +184,7 @@ const handleLogout = async () => {
 **File:** `src/hooks/useReportsData.ts` — line 78–80
 
 **Problem:**
+
 ```ts
 const res = await apiClient.get("/api/reports/analytics", {
   params: { user_id: user.id },
@@ -184,9 +195,10 @@ If the backend uses this `user_id` parameter directly in a database query withou
 
 **Fix (Client):** Remove `user_id` from the request params entirely.
 **Fix (Backend — REQUIRED):** Derive the user's ID exclusively from the validated JWT:
+
 ```js
 // Express example (backend)
-app.get('/api/reports/analytics', authenticate, (req, res) => {
+app.get("/api/reports/analytics", authenticate, (req, res) => {
   const userId = req.user.sub; // from JWT — never from req.query
   // query DB with userId
 });
@@ -230,9 +242,10 @@ const handleLogin = async () => {
 `catch (err: any)` bypasses TypeScript's type safety. Axios errors have a different shape (`err.response.data.message`) than plain `Error` instances or network failures. Inconsistent error-handling can surface raw stack traces or undefined values to the UI.
 
 **Fix:**
+
 ```ts
 // src/utils/errorUtils.ts
-import axios from 'axios';
+import axios from "axios";
 
 export function extractErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
@@ -251,7 +264,7 @@ Replace all `catch (err: any)` blocks with `catch (err: unknown)` and use this u
 
 ---
 
-### ✅ HIGH-PERF-03 — `useState` Used as `useEffect` in `PlatformBar` *(FIXED)*
+### ✅ HIGH-PERF-03 — `useState` Used as `useEffect` in `PlatformBar` _(FIXED)_
 
 **Severity:** HIGH
 **File:** `src/screens/Revenue/index.tsx`
@@ -279,13 +292,16 @@ An artist with 300 releases will download all 300 objects on every mount, burnin
 
 **Fix:**
 Add server-side pagination. Pass `page` and `limit` to the API:
+
 ```ts
-const res = await apiClient.get('/api/submissions', {
+const res = await apiClient.get("/api/submissions", {
   params: {
     page,
     limit: PAGE_SIZE,
-    ...(releaseType && releaseType !== 'all' ? { release_type: releaseType } : {}),
-  }
+    ...(releaseType && releaseType !== "all"
+      ? { release_type: releaseType }
+      : {}),
+  },
 });
 // expect: { submissions: [...], total: number }
 ```
@@ -323,7 +339,7 @@ Native React Native `<Image>` has no persistent disk cache on Android. Scrolling
 Replace with `expo-image` (already installed), which has multi-tier memory + disk caching:
 
 ```tsx
-import { Image } from 'expo-image';
+import { Image } from "expo-image";
 
 // List item:
 <Image
@@ -331,7 +347,7 @@ import { Image } from 'expo-image';
   style={{ height: 56, width: 56, borderRadius: 8 }}
   contentFit="cover"
   recyclingKey={release.id}
-/>
+/>;
 ```
 
 ---
@@ -342,8 +358,10 @@ import { Image } from 'expo-image';
 **File:** `src/hooks/useDashboardData.ts` — lines 49–52
 
 **Problem:**
+
 ```ts
-const refetch = () => {   // ← not wrapped in useCallback
+const refetch = () => {
+  // ← not wrapped in useCallback
   refetchRevenue();
   refetchReleases();
 };
@@ -352,6 +370,7 @@ const refetch = () => {   // ← not wrapped in useCallback
 A new function reference is created on every render. When passed as `RefreshControl`'s `onRefresh`, this causes unnecessary downstream re-renders.
 
 **Fix:**
+
 ```ts
 const refetch = useCallback(() => {
   refetchRevenue();
@@ -370,14 +389,17 @@ const refetch = useCallback(() => {
 Two `useEffect` hooks create a sequential waterfall — reports fetch first, React re-renders, then analytics fetch starts. Adds one full render cycle of latency before analytics begins.
 
 ```ts
-useEffect(() => { fetchReports(); }, [fetchReports]);
 useEffect(() => {
-  if (reports.length) fetchAnalytics();  // waits for reports state to update
+  fetchReports();
+}, [fetchReports]);
+useEffect(() => {
+  if (reports.length) fetchAnalytics(); // waits for reports state to update
 }, [reports.length, fetchAnalytics]);
 ```
 
 **Fix:**
 Coordinate both fetches in a single async function:
+
 ```ts
 useEffect(() => {
   const init = async () => {
@@ -390,7 +412,7 @@ useEffect(() => {
 
 ---
 
-### ✅ LOW-PERF-07 — `KeyboardAvoidingView` `behavior` Undefined on Android *(FIXED)*
+### ✅ LOW-PERF-07 — `KeyboardAvoidingView` `behavior` Undefined on Android _(FIXED)_
 
 **Severity:** LOW
 **File:** `src/app/index.tsx`
@@ -416,7 +438,7 @@ Either implement these screens before shipping, or temporarily remove them from 
 
 ---
 
-### ✅ HIGH-ARCH-02 — `FormErrors` Interface Declared Twice *(FIXED)*
+### ✅ HIGH-ARCH-02 — `FormErrors` Interface Declared Twice _(FIXED)_
 
 **Severity:** HIGH
 **File:** `src/app/index.tsx`
@@ -425,7 +447,7 @@ Either implement these screens before shipping, or temporarily remove them from 
 
 ---
 
-### ✅ MED-SEC-09 (partial) — Login `catch (err: any)` Cleaned Up *(PARTIALLY FIXED)*
+### ✅ MED-SEC-09 (partial) — Login `catch (err: any)` Cleaned Up _(PARTIALLY FIXED)_
 
 **Severity:** MEDIUM
 **File:** `src/app/index.tsx`
@@ -444,6 +466,7 @@ The file is named `Release.tsx` (capital R), but `home.tsx` calls `router.push("
 
 **Fix:**
 Rename `src/app/Release.tsx` → `src/app/release.tsx` (lowercase) and update all route references:
+
 - `_layout.tsx`: `name="release"`
 - `Footer.tsx`: `route: "/release"`
 - `home.tsx`: already uses `"/release"` — no change needed
@@ -459,15 +482,16 @@ Rename `src/app/Release.tsx` → `src/app/release.tsx` (lowercase) and update al
 The same `PLATFORM_COLORS` map and `getPlatformColor` function are copy-pasted verbatim in both hooks. If a platform is added or a color changes, it must be updated in two places — and they will inevitably diverge.
 
 **Fix:**
+
 ```ts
 // src/constants/platforms.ts
 export const PLATFORM_COLORS: Record<string, string> = {
-  Spotify: '#22c55e',
-  'Apple Music': '#ec4899',
-  'Amazon Music': '#0ea5e9',
-  'YouTube Music': '#f43f5e',
+  Spotify: "#22c55e",
+  "Apple Music": "#ec4899",
+  "Amazon Music": "#0ea5e9",
+  "YouTube Music": "#f43f5e",
 };
-export const DEFAULT_PLATFORM_COLOR = '#eab308';
+export const DEFAULT_PLATFORM_COLOR = "#eab308";
 export const getPlatformColor = (platform: string): string =>
   PLATFORM_COLORS[platform] ?? DEFAULT_PLATFORM_COLOR;
 ```
@@ -482,6 +506,7 @@ Import from both hooks.
 **File:** `src/hooks/useRevenueData.ts` — lines 65–66
 
 **Problem:**
+
 ```ts
 const [transactions, setTransactions] = useState<any[]>([]);
 const [rawPayouts, setRawPayouts] = useState<any[]>([]);
@@ -490,6 +515,7 @@ const [rawPayouts, setRawPayouts] = useState<any[]>([]);
 Using `any[]` defeats TypeScript. If the backend renames `amount` to `net_amount`, there is zero compile-time safety — the bug will surface as a silent `NaN` or `$0.00` in production.
 
 **Fix:**
+
 ```ts
 interface RawTransaction {
   platform?: string;
@@ -518,9 +544,13 @@ const [rawPayouts, setRawPayouts] = useState<RawPayout[]>([]);
 **File:** `src/screens/Release/index.tsx` — lines 131–135
 
 **Problem:**
+
 ```ts
 const handleCreate = (type: ReleaseType) => {
-  Alert.alert(`New ${type} release`, "Hook this up to your form screen when it's ready.");
+  Alert.alert(
+    `New ${type} release`,
+    "Hook this up to your form screen when it's ready.",
+  );
 };
 ```
 
@@ -531,7 +561,7 @@ Implement the release creation form and navigate to it, or remove the buttons un
 
 ---
 
-### ✅ MED-ARCH-07 — `handleDownload` Read Token from Stale Axios Defaults *(FIXED)*
+### ✅ MED-ARCH-07 — `handleDownload` Read Token from Stale Axios Defaults _(FIXED)_
 
 **Severity:** MEDIUM
 **File:** `src/hooks/useReportsData.ts`
@@ -546,6 +576,7 @@ Implement the release creation form and navigate to it, or remove the buttons un
 **File:** `src/utils/Auth.ts`
 
 **Problem:**
+
 ```ts
 export const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour — match backend JWT expiry
 ```
@@ -554,6 +585,7 @@ If the backend JWT expiry changes (e.g., to 15 minutes for security hardening), 
 
 **Fix:**
 Use the session's actual expiry timestamp from Supabase, which is provided in `data.session.expires_at`:
+
 ```ts
 // In SupabaseAuthContext.tsx signIn:
 await tokenStorage.setTokenExpiry(sessionData.expires_at * 1000); // convert unix seconds to ms
@@ -573,8 +605,11 @@ Remove the `SESSION_DURATION_MS` constant entirely.
 **File:** `src/app/index.tsx` — line 185
 
 **Problem:**
+
 ```tsx
-<TouchableOpacity disabled={loading}>   {/* No onPress */}
+<TouchableOpacity disabled={loading}>
+  {" "}
+  {/* No onPress */}
   <Text>Forgot Credentials?</Text>
 </TouchableOpacity>
 ```
@@ -582,13 +617,17 @@ Remove the `SESSION_DURATION_MS` constant entirely.
 The button is completely inert. Users who forget their password have no recovery path within the app.
 
 **Fix:**
+
 ```tsx
 <TouchableOpacity
   disabled={loading}
   onPress={async () => {
-    if (!email.trim()) { setErrors({ email: 'Enter your email first' }); return; }
+    if (!email.trim()) {
+      setErrors({ email: "Enter your email first" });
+      return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-    if (!error) Alert.alert('Check your email', 'Password reset link sent.');
+    if (!error) Alert.alert("Check your email", "Password reset link sent.");
   }}
 >
   <Text>Forgot Credentials?</Text>
@@ -606,16 +645,17 @@ The button is completely inert. Users who forget their password have no recovery
 The fingerprint sign-in button displays the biometric icon and label but has no `onPress` handler. Tapping it does absolutely nothing — users will tap it multiple times expecting Face ID or fingerprint authentication.
 
 **Fix:**
+
 ```bash
 npx expo install expo-local-authentication
 ```
 
 ```tsx
-import * as LocalAuthentication from 'expo-local-authentication';
+import * as LocalAuthentication from "expo-local-authentication";
 
 const handleBiometricLogin = async () => {
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Sign in to Movement Creations',
+    promptMessage: "Sign in to Movement Creations",
   });
   if (result.success) {
     // retrieve stored credentials and call signIn
@@ -624,7 +664,7 @@ const handleBiometricLogin = async () => {
 
 <TouchableOpacity onPress={handleBiometricLogin} disabled={loading}>
   ...
-</TouchableOpacity>
+</TouchableOpacity>;
 ```
 
 ---
@@ -635,6 +675,7 @@ const handleBiometricLogin = async () => {
 **File:** `src/app/index.tsx` — line 274
 
 **Problem:**
+
 ```tsx
 <TouchableOpacity onPress={() => !loading && router.push("/home")}>
 ```
@@ -643,6 +684,7 @@ const handleBiometricLogin = async () => {
 
 **Fix:**
 Route to a registration screen or to the Movement Creations website for artist onboarding:
+
 ```tsx
 import * as Linking from 'expo-linking';
 <TouchableOpacity onPress={() => Linking.openURL('https://movementcreations.in/join')}>
@@ -656,6 +698,7 @@ import * as Linking from 'expo-linking';
 **File:** `src/app/index.tsx` — line 298
 
 **Problem:**
+
 ```tsx
 <Text>Movement Creations Studio - v2.4.0</Text>
 ```
@@ -663,10 +706,13 @@ import * as Linking from 'expo-linking';
 Hardcoded and does not match `package.json` (`"version": "1.0.0"`). Will perpetually show the wrong version.
 
 **Fix:**
-```tsx
-import Constants from 'expo-constants';
 
-<Text>Movement Creations Studio - v{Constants.expoConfig?.version ?? '—'}</Text>
+```tsx
+import Constants from "expo-constants";
+
+<Text>
+  Movement Creations Studio - v{Constants.expoConfig?.version ?? "—"}
+</Text>;
 ```
 
 ---
@@ -677,6 +723,7 @@ import Constants from 'expo-constants';
 **File:** `src/components/Footer.tsx` — line 96
 
 **Problem:**
+
 ```tsx
 {menuItems.map((item, index) => (
   <TouchableOpacity key={index} ...>
@@ -685,6 +732,7 @@ import Constants from 'expo-constants';
 Using array index as `key` is an anti-pattern. React may incorrectly reuse nodes if the array order changes.
 
 **Fix:**
+
 ```tsx
 <TouchableOpacity key={item.name} ...>
 ```
@@ -697,6 +745,7 @@ Using array index as `key` is an anti-pattern. React may incorrectly reuse nodes
 **File:** `src/app/index.tsx` — line 1
 
 **Problem:**
+
 ```ts
 // src/app/login.tsx   ← incorrect
 ```
@@ -717,6 +766,7 @@ The comment refers to a different filename, indicating copy-paste origin.
 **File:** `Dockerfile`
 
 **Problem:**
+
 ```dockerfile
 FROM node:22
 WORKDIR /app
@@ -728,6 +778,7 @@ CMD ["npx", "react-native", "start", "--host", "0.0.0.0"]  # Metro DEV server
 ```
 
 Five critical flaws:
+
 1. Copies `.env` secrets into the Docker image (every layer is inspectable)
 2. Uses `npm install` (non-deterministic) instead of `npm ci`
 3. Runs the Metro **development** server, not a production build
@@ -735,6 +786,7 @@ Five critical flaws:
 5. `node:22` base image is not pinned to a digest (supply-chain risk)
 
 **Fix (production multi-stage Dockerfile):**
+
 ```dockerfile
 FROM node:22-alpine AS deps
 WORKDIR /app
@@ -767,6 +819,7 @@ CMD ["nginx", "-g", "daemon off;"]
 No GitHub Actions, GitLab CI, or other pipeline is configured. There is no automated gate for TypeScript errors, lint failures, or secret scanning. Code can be merged and deployed without any validation.
 
 **Minimum fix — add `.github/workflows/ci.yml`:**
+
 ```yaml
 name: CI
 on: [push, pull_request]
@@ -777,8 +830,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
@@ -794,6 +847,7 @@ jobs:
 No `eas.json` exists, so there are no defined build profiles for development, preview, or production. Native iOS/Android builds require manual configuration on every machine. There is no OTA update channel strategy.
 
 **Fix:**
+
 ```bash
 npx eas build:configure
 ```
@@ -808,12 +862,14 @@ Commit the generated `eas.json`. Store all `EXPO_PUBLIC_*` values in EAS Secrets
 **File:** `app.json`
 
 **Problems:**
+
 - No `bundleIdentifier` — required for iOS App Store submission
 - No `package` name — required for Google Play submission
 - No `runtimeVersion` — OTA updates may break between app versions
 - iOS `"icon": "./assets/expo.icon"` — non-standard path, likely broken
 
 **Fix:**
+
 ```json
 {
   "expo": {
@@ -835,24 +891,24 @@ Commit the generated `eas.json`. Store all `EXPO_PUBLIC_*` values in EAS Secrets
 
 ## 📋 Remediation Priority Matrix
 
-| Priority | When | Issues |
-|---|---|---|
-| **P0 — Do not ship** | Immediately | CRIT-SEC-01 (rotate keys) · CRIT-SEC-02 · CRIT-SEC-03 · CRIT-SEC-04 · HIGH-SEC-06 · HIGH-QA-01 · HIGH-QA-02 · MED-QA-03 · CRIT-ARCH-01 |
-| **P1 — Current sprint** | Before next release | HIGH-ARCH-03 · HIGH-SEC-05 · HIGH-SEC-07 · CRIT-DEVOPS-01 |
-| **P2 — Within 2 sprints** | Scheduled | HIGH-PERF-01 · HIGH-PERF-02 · MED-PERF-04 · MED-PERF-05 · MED-PERF-06 · HIGH-ARCH-04 · MED-ARCH-05 · MED-ARCH-06 · MED-QA-04 · MED-SEC-08 · MED-SEC-09 |
-| **P3 — Tech debt** | Backlog | LOW-ARCH-08 · LOW-QA-05 · LOW-QA-06 · HIGH-DEVOPS-02 · HIGH-DEVOPS-03 · MED-DEVOPS-04 |
+| Priority                  | When                | Issues                                                                                                                                                 |
+| ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **P0 — Do not ship**      | Immediately         | CRIT-SEC-01 (rotate keys) · CRIT-SEC-02 · CRIT-SEC-03 · CRIT-SEC-04 · HIGH-SEC-06 · HIGH-QA-01 · HIGH-QA-02 · MED-QA-03 · CRIT-ARCH-01                 |
+| **P1 — Current sprint**   | Before next release | HIGH-ARCH-03 · HIGH-SEC-05 · HIGH-SEC-07 · CRIT-DEVOPS-01                                                                                              |
+| **P2 — Within 2 sprints** | Scheduled           | HIGH-PERF-01 · HIGH-PERF-02 · MED-PERF-04 · MED-PERF-05 · MED-PERF-06 · HIGH-ARCH-04 · MED-ARCH-05 · MED-ARCH-06 · MED-QA-04 · MED-SEC-08 · MED-SEC-09 |
+| **P3 — Tech debt**        | Backlog             | LOW-ARCH-08 · LOW-QA-05 · LOW-QA-06 · HIGH-DEVOPS-02 · HIGH-DEVOPS-03 · MED-DEVOPS-04                                                                  |
 
 ---
 
 ## ✅ Fixes Already Applied (as of July 15, 2026)
 
-| Issue | Fix Applied |
-|---|---|
-| CRIT-SEC-01 (partial) | `.env` added to `.gitignore` — keys still need rotating |
-| HIGH-PERF-03 | `useState` → `useEffect` with `[percentage]` dep in `PlatformBar` |
-| MED-ARCH-07 | `handleDownload` now reads token via `tokenStorage.getAccessToken()` |
-| HIGH-ARCH-02 | Duplicate `FormErrors` interface removed from `index.tsx` |
-| LOW-PERF-07 | `KeyboardAvoidingView` behavior set to `"height"` on Android |
+| Issue                 | Fix Applied                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| CRIT-SEC-01 (partial) | `.env` added to `.gitignore` — keys still need rotating              |
+| HIGH-PERF-03          | `useState` → `useEffect` with `[percentage]` dep in `PlatformBar`    |
+| MED-ARCH-07           | `handleDownload` now reads token via `tokenStorage.getAccessToken()` |
+| HIGH-ARCH-02          | Duplicate `FormErrors` interface removed from `index.tsx`            |
+| LOW-PERF-07           | `KeyboardAvoidingView` behavior set to `"height"` on Android         |
 
 ---
 
@@ -867,4 +923,4 @@ Commit the generated `eas.json`. Store all `EXPO_PUBLIC_*` values in EAS Secrets
 
 ---
 
-*Audit report — Movement Creations Studio v1.0.0 — July 15, 2026*
+_Audit report — Movement Creations Studio v1.0.0 — July 15, 2026_

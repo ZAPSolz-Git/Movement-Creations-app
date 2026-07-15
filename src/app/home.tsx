@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -13,7 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../components/Footer";
 import { useDashboardData } from "../hooks/useDashboardData"; // ⚠️ adjust path if needed
-import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 const ACCENT = "#7C3AED";
 const ACCENT_DARK = "#4c1d95";
@@ -48,10 +48,10 @@ export default function HomePage() {
   const { signOut } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
-const handleLogout = async () => {
-  await signOut(); // clears SecureStore + signs out Supabase
-  router.replace('/');
-};
+  const handleLogout = async () => {
+    await signOut(); // clears SecureStore + signs out Supabase
+    router.replace("/");
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -149,7 +149,7 @@ const handleLogout = async () => {
               </Text>
 
               <TouchableOpacity
-                onPress={() => router.push("/release")}
+                onPress={() => router.push("/Release")}
                 className="mt-5 flex-row items-center justify-center rounded-xl bg-white/15 border border-white/20 py-3.5"
               >
                 <Feather name="upload-cloud" size={18} color="#fff" />
