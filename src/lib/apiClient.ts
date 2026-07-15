@@ -4,14 +4,20 @@ import axios, {
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from "axios";
+import { Platform } from "react-native";
 import { supabase } from "./supabaseClient";
 import { tokenStorage } from "./tokenStorage";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL as string;
+const REAL_API_URL = process.env.EXPO_PUBLIC_API_URL as string;
 
-if (!API_BASE_URL) {
+if (!REAL_API_URL) {
   throw new Error("Missing EXPO_PUBLIC_API_URL in .env");
 }
+
+// On web in dev, route through the Metro proxy (same-origin, no CORS).
+// On native, and in web production builds, hit the real API directly.
+const API_BASE_URL =
+  Platform.OS === "web" && __DEV__ ? "" : REAL_API_URL;
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -49,8 +55,6 @@ const flushQueue = (error: unknown, token: string | null = null) => {
   pendingQueue = [];
 };
 
-// Set by the app root (e.g. on AuthContext) so the interceptor can force
-// navigation to Login without importing navigation logic here directly.
 let onAuthExpired: (() => void) | null = null;
 export const setOnAuthExpired = (handler: () => void) => {
   onAuthExpired = handler;
@@ -107,7 +111,7 @@ apiClient.interceptors.response.use(
       flushQueue(refreshFailure, null);
       await tokenStorage.clearTokens();
       await supabase.auth.signOut();
-      onAuthExpired?.(); // e.g. navigate to Login screen
+      onAuthExpired?.();
       return Promise.reject(refreshFailure);
     } finally {
       isRefreshing = false;

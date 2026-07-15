@@ -322,7 +322,6 @@ const handleDownload = useCallback(async (id: string) => {
   const token = apiClient.defaults.headers?.common?.Authorization as string | undefined;
 
   if (Platform.OS === "web") {
-    // same blob+<a> approach as your original web hook
     const res = await fetch(url, { headers: token ? { Authorization: token } : undefined });
     if (!res.ok) return;
     const blob = await res.blob();
@@ -336,8 +335,11 @@ const handleDownload = useCallback(async (id: string) => {
   }
 
   try {
-    const FileSystem = await import("expo-file-system");
+    // legacy subpath keeps cacheDirectory / downloadAsync (removed from
+    // the top-level export in the SDK 54 File/Directory rewrite)
+    const FileSystem = await import("expo-file-system/legacy");
     const Sharing = await import("expo-sharing");
+
     const dest = `${FileSystem.cacheDirectory}report-${id}.pdf`;
     const { uri } = await FileSystem.downloadAsync(url, dest, {
       headers: token ? { Authorization: token } : undefined,
@@ -347,7 +349,6 @@ const handleDownload = useCallback(async (id: string) => {
     console.error("Download error:", err);
   }
 }, []);
-
   return {
     reports,
     analytics,
