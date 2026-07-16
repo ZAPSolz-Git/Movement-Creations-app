@@ -325,6 +325,8 @@ const handleDownload = useCallback(async (id: string) => {
   ? { Authorization: `Bearer ${token}` }
   : undefined;
 
+
+  
   if (Platform.OS === "web") {
     const res = await fetch(url, { headers: authHeaders });
     if (!res.ok) return;

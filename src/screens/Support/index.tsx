@@ -28,6 +28,7 @@ import {
 } from "lucide-react-native";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import Footer from "../../components/Footer";
 import Toast from "react-native-toast-message";
 
 // ── Brand tokens (matches web ticket module) ──
@@ -324,6 +325,7 @@ export default function SupportScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: BG }}>
+      <View style={{ flex: 1, paddingBottom: 120 }}>
       {/* ── Header ── */}
       <View className="bg-white border-b border-gray-200 px-5 pt-14 pb-4">
         <View className="flex-row items-center justify-between mb-4">
@@ -706,6 +708,9 @@ export default function SupportScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
+      </View>
+
+      <Footer />
     </View>
   );
 }
