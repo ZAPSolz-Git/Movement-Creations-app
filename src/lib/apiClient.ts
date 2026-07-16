@@ -5,6 +5,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { Platform } from "react-native";
+import Toast from "react-native-toast-message";
 import { supabase } from "./supabaseClient";
 import { tokenStorage } from "./tokenStorage";
 
@@ -16,8 +17,7 @@ if (!REAL_API_URL) {
 
 // On web in dev, route through the Metro proxy (same-origin, no CORS).
 // On native, and in web production builds, hit the real API directly.
-const API_BASE_URL =
-  Platform.OS === "web" && __DEV__ ? "" : REAL_API_URL;
+const API_BASE_URL = Platform.OS === "web" && __DEV__ ? "" : REAL_API_URL;
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -26,6 +26,25 @@ export const apiClient: AxiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+const isApiRoute = (config?: InternalAxiosRequestConfig) => {
+  const url = config?.url ?? "";
+  return url.includes("/api/");
+};
+
+const showApiToast = (type: "success" | "error", message?: string) => {
+  Toast.show({
+    type,
+    text1: type === "success" ? "Success" : "Error",
+    text2:
+      message ??
+      (type === "success"
+        ? "Request completed successfully."
+        : "Something went wrong."),
+    visibilityTime: 3000,
+    autoHide: true,
+  });
+};
 
 // ── Attach access token on every outgoing request ──
 apiClient.interceptors.request.use(
@@ -61,13 +80,28 @@ export const setOnAuthExpired = (handler: () => void) => {
 };
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (isApiRoute(response.config)) {
+      const data = response.data as
+        { message?: string; detail?: string; error?: string } | undefined;
+      const message = data?.message ?? data?.detail ?? data?.error;
+      showApiToast("success", message);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
     const status = error.response?.status;
+
+    if (isApiRoute(originalRequest)) {
+      const data = error.response?.data as
+        { message?: string; detail?: string; error?: string } | undefined;
+      const message = data?.message ?? data?.detail ?? data?.error;
+      showApiToast("error", message ?? "Something went wrong.");
+    }
 
     if (status !== 401 || originalRequest?._retry) {
       return Promise.reject(error);

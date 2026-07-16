@@ -1,6 +1,7 @@
 // src/app/_layout.tsx
 import { Stack, router } from "expo-router";
 import { useEffect } from "react";
+import Toast from "react-native-toast-message";
 import { AuthProvider } from "../contexts/SupabaseAuthContext";
 import "../global.css";
 import { setOnAuthExpired } from "../lib/apiClient";
@@ -21,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="rights" />
         <Stack.Screen name="profile" />
       </Stack>
+      <Toast />
     </AuthProvider>
   );
 }
