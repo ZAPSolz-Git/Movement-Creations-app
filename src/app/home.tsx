@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useExitOnBack } from "@/hooks/useExitOnBack";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -30,11 +31,13 @@ const STATUS_STYLES: Record<string, StatusStyleConfig> = {
   Rejected: { bg: "bg-red-100", text: "text-red-700" },
 };
 
+// 👇 this is the one that's missing
 function formatCurrency(value: number) {
   return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function HomePage() {
+  useExitOnBack();
   const {
     stats,
     totalRevenue,
