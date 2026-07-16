@@ -321,9 +321,15 @@ export function useReportsData({
 const handleDownload = useCallback(async (id: string) => {
   const url = `${apiClient.defaults.baseURL}/api/report/download/${id}`;
   const token = await tokenStorage.getAccessToken();
-
+  const authHeaders = token
+  ? { Authorization: `Bearer ${token}` }
+  : undefined;
+  console.log("token:", token);
+console.log("header:", {
+  Authorization: token,
+});
   if (Platform.OS === "web") {
-    const res = await fetch(url, { headers: token ? { Authorization: token } : undefined });
+    const res = await fetch(url, { headers: authHeaders });
     if (!res.ok) return;
     const blob = await res.blob();
     const objUrl = URL.createObjectURL(blob);
@@ -343,7 +349,7 @@ const handleDownload = useCallback(async (id: string) => {
 
     const dest = `${FileSystem.cacheDirectory}report-${id}.pdf`;
     const { uri } = await FileSystem.downloadAsync(url, dest, {
-      headers: token ? { Authorization: token } : undefined,
+     headers: authHeaders,
     });
     if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
   } catch (err) {
