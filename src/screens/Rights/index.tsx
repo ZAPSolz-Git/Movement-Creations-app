@@ -419,51 +419,76 @@ function RightsTab() {
   const [viewingRelease, setViewingRelease] = useState<ReleaseRights | null>(
     null,
   );
+const handleSearch = async () => {
+  if (!searchTitle.trim() && !artistName.trim()) {
+    setSearchError("Please enter a release title or artist name.");
+    return;
+  }
 
-  const handleSearch = async () => {
-    if (!searchTitle.trim() && !artistName.trim()) {
-      setSearchError("Please enter a release title or artist name.");
+  setIsSearching(true);
+  setSearchError("");
+  setReleaseRights(null);
+
+  try {
+    const headers = await getAuthHeaders();
+
+    const response = await apiClient.get(
+      "/api/submissions/search",
+      {
+        headers,
+        params: {
+          title: searchTitle.trim() || undefined,
+          artist: artistName.trim() || undefined,
+        },
+      }
+    );
+
+
+
+    // Same handling as the website
+    const data = Array.isArray(response.data)
+      ? response.data[0]
+      : response.data;
+
+    if (!data) {
+      setSearchError(
+        "No approved release found. Try a different title or artist."
+      );
       return;
     }
 
-    setIsSearching(true);
-    setSearchError("");
-    setReleaseRights(null);
+    setReleaseRights({
+      ...data,
+      mechanicalRights: true,
+      performanceRights: true,
+      synchronizationRights: false,
+      rightsHolder: data.copyright_holder || data.publisher || "N/A",
+      publisher: data.publisher || "N/A",
+      territories: Array.isArray(data.distribution_territories)
+        ? data.distribution_territories.join(", ")
+        : "N/A",
+      notes: `Fetched from submission by ${data.primary_artist || "Unknown"}.`,
+      userFullName:
+        data.user_details?.full_name || data.user_full_name || "N/A",
+      userEmail:
+        data.user_details?.email || data.user_email || "N/A",
+      userLabelName:
+        data.user_details?.label_name || data.user_label_name || "N/A",
+    });
 
-    try {
-      const headers = await getAuthHeaders();
-      const response = await apiClient.get<ReleaseSearchResponse>(
-        "/api/rights/search",
-        {
-          headers,
-          params: {
-            title: searchTitle.trim() || undefined,
-            artist: artistName.trim() || undefined,
-          },
-        },
-      );
-
-      const results = extractReleaseResults(response.data);
-
-      if (!results.length) {
-        setSearchError(
-          "No approved release found. Try a different title or artist.",
-        );
-        return;
-      }
-
-      setReleaseRights(mapReleaseRights(results[0]));
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Failed to search release rights:", error);
-      setSearchError(
-        getErrorMessage(error, "Unable to search right now. Please try again."),
-      );
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
+    setIsEditing(false);
+  } catch (error) {
+    console.error("Failed to search release rights:", error);
+    setSearchError(
+      getErrorMessage(
+        error,
+        "Unable to search right now. Please try again."
+      )
+    );
+  } finally {
+    setIsSearching(false);
+  }
+};
   const handleEditClick = () => {
     if (!releaseRights) return;
     setSaveError("");

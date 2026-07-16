@@ -345,7 +345,7 @@ export default function HomePage() {
                   return (
                     <TouchableOpacity
                       key={release.id}
-                      onPress={() => router.push("/release")}
+                      onPress={() => router.push("/Release")}
                       activeOpacity={0.8}
                       className="rounded-2xl border border-violet-50 bg-white p-5 shadow md:p-6"
                     >
@@ -388,7 +388,7 @@ export default function HomePage() {
                 <QuickLinkCard
                   label="Manage Releases"
                   icon="disc"
-                  onPress={() => router.push("/release")}
+                  onPress={() => router.push("/Release")}
                 />
                 <QuickLinkCard
                   label="Rights Management"
