@@ -5,10 +5,14 @@ import Toast from "react-native-toast-message";
 import { AuthProvider } from "../contexts/SupabaseAuthContext";
 import "../global.css";
 import { setOnAuthExpired } from "../lib/apiClient";
+import { logoutAndClearAuth } from "../utils/Auth";
 
 export default function RootLayout() {
   useEffect(() => {
-    setOnAuthExpired(() => router.replace("/home"));
+    setOnAuthExpired(async () => {
+      await logoutAndClearAuth();
+      router.replace("/");
+    });
   }, []);
 
   return (
@@ -21,6 +25,7 @@ export default function RootLayout() {
         <Stack.Screen name="reports" />
         <Stack.Screen name="rights" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="support" />
       </Stack>
       <Toast />
     </AuthProvider>
