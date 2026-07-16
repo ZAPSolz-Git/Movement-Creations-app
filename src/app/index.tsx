@@ -15,8 +15,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { supabase } from "../lib/supabaseClient";
-import { tokenStorage } from "../lib/tokenStorage";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface FormErrors {
@@ -56,8 +54,11 @@ export default function Login() {
     setLoading(true);
     const { error } = await signIn(email.trim().toLowerCase(), password);
     setLoading(false);
-    if (error) { setServerError(error); return; }
-    router.replace('/home');
+    if (error) {
+      setServerError(error);
+      return;
+    }
+    router.replace("/home");
   };
 
   return (
