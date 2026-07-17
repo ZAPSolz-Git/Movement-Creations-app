@@ -31,10 +31,8 @@ import Footer from "../../components/Footer";
 
 import { Release, ReleaseType, useReleasesData } from "@/hooks/useReleaseData";
 import { apiClient } from "../../lib/apiClient"; // ⚠️ adjust path if needed
+import ReleaseViewModal from "@/components/ReleaseViewModal";
 
-/* ─────────────────────────────────────────
-   CONFIG
-───────────────────────────────────────── */
 
 const PAGE_SIZE = 5;
 const ACCENT = "#ec5b13";
@@ -401,9 +399,7 @@ export default function ReleasePage() {
   );
 }
 
-/* ─────────────────────────────────────────
-   SUBCOMPONENTS
-───────────────────────────────────────── */
+
 
 function CreateActionCard({
   title,
@@ -571,50 +567,3 @@ function Detail({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function ReleaseViewModal({
-  release,
-  visible,
-  onClose,
-}: {
-  release: Release | null;
-  visible: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
-      <View className="flex-1 bg-black/40 justify-end">
-        <View className="bg-white rounded-t-2xl max-h-[85%]">
-          <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100">
-            <Text className="text-lg font-bold text-slate-900">
-              Release Details
-            </Text>
-            <TouchableOpacity onPress={onClose} className="p-1">
-              <X size={20} color="#64748b" />
-            </TouchableOpacity>
-          </View>
-
-          {release && (
-            <ScrollView contentContainerStyle={{ padding: 20 }}>
-              <Image
-                source={{ uri: release.cover_url }}
-                className="h-40 w-40 self-center rounded-xl mb-4"
-              />
-              <Detail label="Title" value={release.title} />
-              <Detail label="Primary Artist" value={release.primary_artist} />
-              <Detail label="Type" value={release.release_type} />
-              <Detail label="Status" value={release.status} />
-              <Detail label="Release Date" value={release.date} />
-              <Detail label="Label" value={release.label} />
-              <Detail label="ISRC" value={release.isrc} />
-            </ScrollView>
-          )}
-        </View>
-      </View>
-    </Modal>
-  );
-}
