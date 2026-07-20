@@ -12,6 +12,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import {
   PlusCircle,
@@ -29,6 +31,7 @@ import {
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import Toast from "react-native-toast-message";
+import Footer from "@/components/Footer";
 
 // ── Brand tokens (matches web ticket module) ──
 const ACCENT = "#ec5b13";
@@ -161,7 +164,6 @@ export default function SupportScreen() {
         priority: form.priority,
         status: "Open",
         user_id: user.id,
-        // assignee_id omitted — backend falls back to the user's admin_id automatically
         message: "",
       });
       Toast.show({ type: "success", text1: "Ticket submitted" });
@@ -322,113 +324,120 @@ export default function SupportScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
-      {/* ── Header ── */}
-      <View className="bg-white border-b border-gray-200 px-5 pt-14 pb-4">
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center gap-3 flex-1">
-            <View style={{ backgroundColor: ACCENT }} className="w-11 h-11 rounded-xl items-center justify-center">
-              <Headphones size={22} color="#fff" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-black" numberOfLines={1}>
-                {pageTitle}
-              </Text>
-              <Text className="text-xs text-gray-500" numberOfLines={1}>
-                {pageDescription}
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={() => setCreateVisible(true)}
-            style={{ backgroundColor: ACCENT }}
-            className="flex-row items-center gap-1.5 px-4 py-2.5 rounded-xl"
-          >
-            <PlusCircle size={16} color="#fff" />
-            <Text className="text-white text-sm font-bold">New</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Search */}
-        <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-xl px-3 mb-3">
-          <Search size={16} color="#9ca3af" />
-          <TextInput
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-            placeholder="Search by subject..."
-            placeholderTextColor="#9ca3af"
-            className="flex-1 px-2 py-2.5 text-sm text-black"
-          />
-        </View>
-
-        {/* Status filter chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-          <View className="flex-row gap-2">
-            {STATUS_FILTERS.map((s) => {
-              const active = statusFilter === s;
-              const label = s === "all" ? "All Status" : STATUS_STYLES[s]?.label || s;
-              return (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => setStatusFilter(s)}
-                  style={{ backgroundColor: active ? ACCENT : "#f3f4f6" }}
-                  className="px-3.5 py-2 rounded-full"
-                >
-                  <Text className={`text-xs font-bold ${active ? "text-white" : "text-gray-600"}`}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        {/* Priority filter chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-2">
-            {PRIORITY_FILTERS.map((p) => {
-              const active = priorityFilter === p;
-              return (
-                <TouchableOpacity
-                  key={p}
-                  onPress={() => setPriorityFilter(p)}
-                  style={{ backgroundColor: active ? "#111827" : "#f3f4f6" }}
-                  className="px-3.5 py-2 rounded-full"
-                >
-                  <Text className={`text-xs font-bold capitalize ${active ? "text-white" : "text-gray-600"}`}>
-                    {p === "all" ? "All Priority" : p}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </View>
-
-      {/* ── Ticket list ── */}
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center gap-3">
-          <ActivityIndicator size="large" color={ACCENT} />
-          <Text className="text-sm text-gray-500">Loading tickets...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredTickets}
-          keyExtractor={(item) => item.id}
-          renderItem={renderTicket}
-          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
-          ListEmptyComponent={
-            <View className="items-center justify-center py-24 gap-3">
-              <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center">
-                <Inbox size={28} color="#d1d5db" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG }}>
+      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      
+      <View style={{ flex: 1 }}>
+        {/* ── Header ── */}
+        <View className="bg-white border-b border-gray-200 px-5 pt-4 pb-4">
+          <View className="flex-row items-center justify-between mb-4">
+            <View className="flex-row items-center gap-3 flex-1">
+              <View style={{ backgroundColor: ACCENT }} className="w-11 h-11 rounded-xl items-center justify-center">
+                <Headphones size={22} color="#fff" />
               </View>
-              <Text className="text-base font-bold text-black">No tickets found</Text>
-              <Text className="text-sm text-gray-400">Create a new ticket or adjust filters</Text>
+              <View className="flex-1">
+                <Text className="text-xl font-bold text-black" numberOfLines={1}>
+                  {pageTitle}
+                </Text>
+                <Text className="text-xs text-gray-500" numberOfLines={1}>
+                  {pageDescription}
+                </Text>
+              </View>
             </View>
-          }
-        />
-      )}
+            <TouchableOpacity
+              onPress={() => setCreateVisible(true)}
+              style={{ backgroundColor: ACCENT }}
+              className="flex-row items-center gap-1.5 px-4 py-2.5 rounded-xl"
+            >
+              <PlusCircle size={16} color="#fff" />
+              <Text className="text-white text-sm font-bold">New</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search */}
+          <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-xl px-3 mb-3">
+            <Search size={16} color="#9ca3af" />
+            <TextInput
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder="Search by subject..."
+              placeholderTextColor="#9ca3af"
+              className="flex-1 px-2 py-2.5 text-sm text-black"
+            />
+          </View>
+
+          {/* Status filter chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
+            <View className="flex-row gap-2">
+              {STATUS_FILTERS.map((s) => {
+                const active = statusFilter === s;
+                const label = s === "all" ? "All Status" : STATUS_STYLES[s]?.label || s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => setStatusFilter(s)}
+                    style={{ backgroundColor: active ? ACCENT : "#f3f4f6" }}
+                    className="px-3.5 py-2 rounded-full"
+                  >
+                    <Text className={`text-xs font-bold ${active ? "text-white" : "text-gray-600"}`}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          {/* Priority filter chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row gap-2">
+              {PRIORITY_FILTERS.map((p) => {
+                const active = priorityFilter === p;
+                return (
+                  <TouchableOpacity
+                    key={p}
+                    onPress={() => setPriorityFilter(p)}
+                    style={{ backgroundColor: active ? "#111827" : "#f3f4f6" }}
+                    className="px-3.5 py-2 rounded-full"
+                  >
+                    <Text className={`text-xs font-bold capitalize ${active ? "text-white" : "text-gray-600"}`}>
+                      {p === "all" ? "All Priority" : p}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* ── Ticket list ── */}
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center gap-3">
+            <ActivityIndicator size="large" color={ACCENT} />
+            <Text className="text-sm text-gray-500">Loading tickets...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTickets}
+            keyExtractor={(item) => item.id}
+            renderItem={renderTicket}
+            contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
+            ListEmptyComponent={
+              <View className="items-center justify-center py-24 gap-3">
+                <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center">
+                  <Inbox size={28} color="#d1d5db" />
+                </View>
+                <Text className="text-base font-bold text-black">No tickets found</Text>
+                <Text className="text-sm text-gray-400">Create a new ticket or adjust filters</Text>
+              </View>
+            }
+          />
+        )}
+
+        {/* ── Footer ── */}
+        <Footer />
+      </View>
 
       {/* ── Create ticket modal ── */}
       <Modal visible={createVisible} animationType="slide" transparent onRequestClose={() => setCreateVisible(false)}>
@@ -695,6 +704,6 @@ export default function SupportScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }

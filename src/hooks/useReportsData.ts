@@ -4,15 +4,16 @@
 // Differences from web version:
 //   - uses apiClient (your 401-refresh-retry axios instance) instead of raw axios + localStorage
 //   - reads user id from SupabaseAuthContext instead of localStorage.getItem("user_id")
-//   - download handler is stubbed (RN needs expo-file-system / expo-sharing, see note at bottom)
+//   - download handler uses expo-file-system / expo-sharing on native, blob+<a> on web
 //
 // Adjust the two import paths below to match your actual file locations.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../contexts/SupabaseAuthContext";
 import { apiClient } from "../lib/apiClient";
 import { Platform } from "react-native";
 import { tokenStorage } from "@/lib/tokenStorage";
+
 // ── platform color map (port from your web constants) ──────────────────────
 const PLATFORM_COLORS: Record<string, string> = {
   Spotify: "#22c55e",
@@ -55,6 +56,13 @@ export function useReportsData({
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Tracks whether analytics has ever successfully loaded, so we know to
+  // retry once auth catches up — without this, if `user` resolves after
+  // `reports` on mobile (async Supabase session restore), fetchAnalytics's
+  // first call silently no-ops on `!user?.id` and nothing re-triggers it,
+  // leaving stream counts permanently blank on cold start.
+  const analyticsLoadedRef = useRef(false);
+
   // ── Fetch reports list ─────────────────────────────────────────────────
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -80,6 +88,7 @@ export function useReportsData({
         params: { user_id: user.id },
       });
       setAnalytics(res.data);
+      analyticsLoadedRef.current = true;
     } catch (err) {
       console.error("Failed to fetch analytics", err);
     } finally {
@@ -91,9 +100,15 @@ export function useReportsData({
     fetchReports();
   }, [fetchReports]);
 
+  // Fires whenever EITHER reports finish loading OR the user id becomes
+  // available — whichever settles second. This is the fix: previously this
+  // only watched `reports.length`, so if auth resolved after reports did,
+  // analytics (and therefore streams/revenue) never loaded.
   useEffect(() => {
-    if (reports.length) fetchAnalytics();
-  }, [reports.length, fetchAnalytics]);
+    if (reports.length && user?.id && !analyticsLoadedRef.current) {
+      fetchAnalytics();
+    }
+  }, [reports.length, user?.id, fetchAnalytics]);
 
   // ── Raw platform data (DSP-level) ───────────────────────────────────────
   const rawPlatformData = useMemo(() => {
@@ -247,10 +262,11 @@ export function useReportsData({
       (analytics?.monthly_streams || [])
         .filter(
           (d: any) =>
-            !selectedMonths.length || selectedMonths.includes(d.period),
+            !!d?.period && // drop rows with no period entirely — nothing useful to plot
+            (!selectedMonths.length || selectedMonths.includes(d.period)),
         )
         .map((d: any, i: number) => ({
-          month: d.period,
+          month: String(d.period), // guarantee a string, never undefined
           Streams: getStreams(d),
           Creations: analytics?.monthly_creations?.[i]?.creations || 0,
           Revenue: analytics?.monthly_revenue?.[i]
@@ -318,43 +334,45 @@ export function useReportsData({
   // RN can't do the blob+<a> trick from web. Use expo-file-system to download
   // to cache, then expo-sharing to hand it off to the OS share sheet.
   // npx expo install expo-file-system expo-sharing
-const handleDownload = useCallback(async (id: string) => {
-  const url = `${apiClient.defaults.baseURL}/api/report/download/${id}`;
-  const token = await tokenStorage.getAccessToken();
-  const authHeaders = token
-  ? { Authorization: `Bearer ${token}` }
-  : undefined;
+  const handleDownload = useCallback(async (id: string) => {
+    const url = `${apiClient.defaults.baseURL}/api/report/download/${id}`;
+    const token = await tokenStorage.getAccessToken();
+    const authHeaders = token
+      ? { Authorization: `Bearer ${token}` }
+      : undefined;
 
+    if (Platform.OS === "web") {
+      const res = await fetch(url, { headers: authHeaders });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), {
+        href: objUrl,
+        download: `report-${id}.pdf`,
+      });
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+      return;
+    }
 
-  
-  if (Platform.OS === "web") {
-    const res = await fetch(url, { headers: authHeaders });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const objUrl = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), { href: objUrl, download: `report-${id}.pdf` });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objUrl);
-    return;
-  }
+    try {
+      // legacy subpath keeps cacheDirectory / downloadAsync (removed from
+      // the top-level export in the SDK 54 File/Directory rewrite)
+      const FileSystem = await import("expo-file-system/legacy");
+      const Sharing = await import("expo-sharing");
 
-  try {
-    // legacy subpath keeps cacheDirectory / downloadAsync (removed from
-    // the top-level export in the SDK 54 File/Directory rewrite)
-    const FileSystem = await import("expo-file-system/legacy");
-    const Sharing = await import("expo-sharing");
+      const dest = `${FileSystem.cacheDirectory}report-${id}.pdf`;
+      const { uri } = await FileSystem.downloadAsync(url, dest, {
+        headers: authHeaders,
+      });
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+    } catch (err) {
+      console.error("Download error:", err);
+    }
+  }, []);
 
-    const dest = `${FileSystem.cacheDirectory}report-${id}.pdf`;
-    const { uri } = await FileSystem.downloadAsync(url, dest, {
-     headers: authHeaders,
-    });
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
-  } catch (err) {
-    console.error("Download error:", err);
-  }
-}, []);
   return {
     reports,
     analytics,

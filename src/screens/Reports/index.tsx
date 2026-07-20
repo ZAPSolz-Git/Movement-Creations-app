@@ -12,7 +12,7 @@ import {
   Search,
   Zap,
 } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -55,6 +55,7 @@ export default function ReportsPage() {
   const [selectedReleases, setSelectedReleases] = useState<string[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const {
     reports,
@@ -68,6 +69,9 @@ export default function ReportsPage() {
     allPlatforms,
     allMonths,
     topReport,
+
+    getReportStreams,
+    getReportRevenue,
 
     monthlyChartData,
     platformChartData,
@@ -88,6 +92,21 @@ export default function ReportsPage() {
     setList(
       list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
     );
+  };
+
+  // Wraps the hook's handleDownload so a specific row can show a spinner
+  // while the file generates/downloads. Guards against double-taps and
+  // always clears state even if the download throws.
+  const handleDownloadWithLoading = async (id: string) => {
+    if (downloadingId) return;
+    setDownloadingId(id);
+    try {
+      await handleDownload(id);
+    } catch (err) {
+      console.warn("Download failed:", err);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const filteredCards = useMemo(
@@ -242,8 +261,8 @@ export default function ReportsPage() {
                     <ReleaseChip
                       key={r.id}
                       title={r.release_title || "Untitled"}
-                      streams={r.total_streams || 0}
-                      revenue={r.total_revenue || 0}
+                      streams={getReportStreams(r)}
+                      revenue={getReportRevenue(r)}
                       isTop={r.id === topReport?.id}
                       selected={selectedReleases.includes(r.id)}
                       onPress={() =>
@@ -297,34 +316,49 @@ export default function ReportsPage() {
               icon={BarChart3}
               loading={analyticsLoading}
             >
-              {lineData.length > 0 ? (
-                <LineChart
-                  data={lineData}
-                  width={CHART_WIDTH - 40}
-                  height={180}
-                  thickness={2.5}
-                  color={ACCENT.blue}
-                  curved
-                  areaChart
-                  startFillColor={ACCENT.blue}
-                  startOpacity={0.25}
-                  endOpacity={0.02}
-                  dataPointsColor={ACCENT.blue}
-                  dataPointsRadius={4}
-                  hideRules
-                  yAxisTextStyle={{ color: "#94a3b8", fontSize: 10 }}
-                  xAxisLabelTextStyle={{ color: "#94a3b8", fontSize: 10 }}
-                  xAxisColor="#e2e8f0"
-                  yAxisColor="#e2e8f0"
-                  noOfSections={4}
-                  spacing={
-                    CHART_WIDTH / Math.max(monthlyChartData.length, 1) - 12
-                  }
-                  initialSpacing={16}
-                />
-              ) : (
-                <EmptyState label="No monthly data yet" />
-              )}
+              <ChartErrorBoundary fallbackLabel="Couldn't render this chart">
+                {lineData.length > 1 ? (
+                  <LineChart
+                    data={lineData}
+                    width={CHART_WIDTH - 40}
+                    height={180}
+                    thickness={2.5}
+                    color={ACCENT.blue}
+                    curved
+                    areaChart
+                    startFillColor={ACCENT.blue}
+                    startOpacity={0.25}
+                    endOpacity={0.02}
+                    dataPointsColor={ACCENT.blue}
+                    dataPointsRadius={4}
+                    hideRules
+                    yAxisTextStyle={{ color: "#94a3b8", fontSize: 10 }}
+                    xAxisLabelTextStyle={{ color: "#94a3b8", fontSize: 10 }}
+                    xAxisColor="#e2e8f0"
+                    yAxisColor="#e2e8f0"
+                    noOfSections={4}
+                    spacing={
+                      CHART_WIDTH / Math.max(monthlyChartData.length, 1) - 12
+                    }
+                    initialSpacing={16}
+                  />
+                ) : lineData.length === 1 ? (
+                  // A curved/area line chart needs 2+ points to compute a
+                  // segment and can crash on a single point — show a simple
+                  // stat instead of risking that here.
+                  <View className="items-center py-6">
+                    <Text className="text-2xl font-black text-slate-900">
+                      {formatNumber(lineData[0].value)}
+                    </Text>
+                    <Text className="text-xs text-slate-400 mt-1">
+                      {lineData[0].label} · not enough data yet for a trend
+                      line
+                    </Text>
+                  </View>
+                ) : (
+                  <EmptyState label="No monthly data yet" />
+                )}
+              </ChartErrorBoundary>
             </ChartCard>
 
             {/* ── PLATFORM PIE ── */}
@@ -333,46 +367,52 @@ export default function ReportsPage() {
               icon={Radio}
               loading={analyticsLoading}
             >
-              {pieData.length > 0 ? (
-                <>
-                  <View className="items-center">
-                    <PieChart
-                      data={pieData}
-                      donut
-                      radius={80}
-                      innerRadius={52}
-                      centerLabelComponent={() => (
-                        <View className="items-center">
-                          <Text className="text-xs text-slate-400">Total</Text>
-                          <Text className="text-sm font-bold text-slate-800">
-                            {formatNumber(grandTotalStreams)}
+              <ChartErrorBoundary fallbackLabel="Couldn't render this chart">
+                {pieData.length > 0 ? (
+                  <>
+                    <View className="items-center">
+                      <PieChart
+                        data={pieData}
+                        donut
+                        radius={80}
+                        innerRadius={52}
+                        centerLabelComponent={() => (
+                          <View className="items-center">
+                            <Text className="text-xs text-slate-400">
+                              Total
+                            </Text>
+                            <Text className="text-sm font-bold text-slate-800">
+                              {formatNumber(grandTotalStreams)}
+                            </Text>
+                          </View>
+                        )}
+                      />
+                    </View>
+                    <View className="flex-row flex-wrap gap-x-4 gap-y-1.5 mt-4 justify-center">
+                      {platformChartData.map((p: any) => (
+                        <View
+                          key={p.name}
+                          className="flex-row items-center gap-1.5"
+                        >
+                          <View
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 4,
+                              backgroundColor: p.color,
+                            }}
+                          />
+                          <Text className="text-xs text-slate-500">
+                            {p.name}
                           </Text>
                         </View>
-                      )}
-                    />
-                  </View>
-                  <View className="flex-row flex-wrap gap-x-4 gap-y-1.5 mt-4 justify-center">
-                    {platformChartData.map((p: any) => (
-                      <View
-                        key={p.name}
-                        className="flex-row items-center gap-1.5"
-                      >
-                        <View
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: p.color,
-                          }}
-                        />
-                        <Text className="text-xs text-slate-500">{p.name}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              ) : (
-                <EmptyState label="No platform data yet" />
-              )}
+                      ))}
+                    </View>
+                  </>
+                ) : (
+                  <EmptyState label="No platform data yet" />
+                )}
+              </ChartErrorBoundary>
             </ChartCard>
 
             {/* ── PLATFORM BAR (revenue) ── */}
@@ -381,24 +421,26 @@ export default function ReportsPage() {
               icon={DollarSign}
               loading={analyticsLoading}
             >
-              {barData.length > 0 ? (
-                <BarChart
-                  data={barData}
-                  width={CHART_WIDTH - 40}
-                  height={180}
-                  barWidth={22}
-                  spacing={22}
-                  roundedTop
-                  hideRules
-                  yAxisTextStyle={{ color: "#94a3b8", fontSize: 10 }}
-                  xAxisLabelTextStyle={{ color: "#94a3b8", fontSize: 9 }}
-                  xAxisColor="#e2e8f0"
-                  yAxisColor="#e2e8f0"
-                  noOfSections={4}
-                />
-              ) : (
-                <EmptyState label="No revenue data yet" />
-              )}
+              <ChartErrorBoundary fallbackLabel="Couldn't render this chart">
+                {barData.length > 0 ? (
+                  <BarChart
+                    data={barData}
+                    width={CHART_WIDTH - 40}
+                    height={180}
+                    barWidth={22}
+                    spacing={22}
+                    roundedTop
+                    hideRules
+                    yAxisTextStyle={{ color: "#94a3b8", fontSize: 10 }}
+                    xAxisLabelTextStyle={{ color: "#94a3b8", fontSize: 9 }}
+                    xAxisColor="#e2e8f0"
+                    yAxisColor="#e2e8f0"
+                    noOfSections={4}
+                  />
+                ) : (
+                  <EmptyState label="No revenue data yet" />
+                )}
+              </ChartErrorBoundary>
             </ChartCard>
 
             {/* ── TRACK LEADERBOARD ── */}
@@ -494,19 +536,21 @@ export default function ReportsPage() {
               icon={BarChart3}
               loading={analyticsLoading}
             >
-              {scatterData.length > 0 ? (
-                <ScatterInsightChart
-                  data={scatterData.map((d: any) => ({
-                    x: d.x,
-                    y: d.y,
-                    label: d.name,
-                  }))}
-                  width={CHART_WIDTH - 40}
-                  height={200}
-                />
-              ) : (
-                <EmptyState label="Not enough data yet" />
-              )}
+              <ChartErrorBoundary fallbackLabel="Couldn't render this chart">
+                {scatterData.length > 0 ? (
+                  <ScatterInsightChart
+                    data={scatterData.map((d: any) => ({
+                      x: d.x,
+                      y: d.y,
+                      label: d.name,
+                    }))}
+                    width={CHART_WIDTH - 40}
+                    height={200}
+                  />
+                ) : (
+                  <EmptyState label="Not enough data yet" />
+                )}
+              </ChartErrorBoundary>
             </ChartCard>
 
             {/* ── CREATION STATS ── */}
@@ -669,7 +713,10 @@ export default function ReportsPage() {
                     <ReportRow
                       key={r.id}
                       report={r}
-                      onDownload={() => handleDownload(r.id)}
+                      streams={getReportStreams(r)}
+                      revenue={getReportRevenue(r)}
+                      isDownloading={downloadingId === r.id}
+                      onDownload={() => handleDownloadWithLoading(r.id)}
                     />
                   ))
                 ) : (
@@ -891,6 +938,31 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
+/* Catches render-time errors thrown by chart libraries (e.g. gifted-charts
+   choking on edge-case data such as a single data point on web) so a bad
+   dataset only blanks out one card instead of crashing the whole screen. */
+class ChartErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallbackLabel?: string },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallbackLabel?: string }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.warn("Chart render error:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <EmptyState label={this.props.fallbackLabel || "Couldn't render this chart"} />;
+    }
+    return this.props.children;
+  }
+}
+
 function LeaderboardRow({
   rank,
   title,
@@ -932,10 +1004,16 @@ function LeaderboardRow({
 
 function ReportRow({
   report,
+  streams,
+  revenue,
   onDownload,
+  isDownloading,
 }: {
   report: any;
+  streams: number;
+  revenue: number;
   onDownload: () => void;
+  isDownloading?: boolean;
 }) {
   return (
     <View className="flex-row items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-3">
@@ -954,18 +1032,34 @@ function ReportRow({
             {report.created_at
               ? new Date(report.created_at).toLocaleDateString()
               : "—"}{" "}
-            · {formatNumber(report.total_streams || 0)} streams · $
-            {(report.total_revenue || 0).toFixed(1)} · {report.line_count || 0}{" "}
+            · {formatNumber(streams)} streams · $
+            {revenue.toFixed(1)} · {report.line_count || 0}{" "}
             rows
           </Text>
         </View>
       </View>
       <TouchableOpacity
         onPress={onDownload}
-        className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200"
+        disabled={isDownloading}
+        activeOpacity={0.7}
+        className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border ${
+          isDownloading ? "border-blue-200 bg-blue-50" : "border-slate-200"
+        }`}
+        style={{ minWidth: 76, justifyContent: "center" }}
       >
-        <Download size={12} color="#64748b" />
-        <Text className="text-xs font-semibold text-slate-500">Get</Text>
+        {isDownloading ? (
+          <>
+            <ActivityIndicator size="small" color="#3b82f6" />
+            <Text className="text-xs font-semibold text-blue-600">
+              Getting…
+            </Text>
+          </>
+        ) : (
+          <>
+            <Download size={12} color="#64748b" />
+            <Text className="text-xs font-semibold text-slate-500">Get</Text>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );
