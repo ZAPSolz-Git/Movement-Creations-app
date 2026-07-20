@@ -33,18 +33,46 @@ import {
 } from "../../hooks/useRevenueData"; // adjust path
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 const YEAR_OPTIONS = ["2024", "2025", "2026", "2027"];
 
 const ACCENT_FROM = "#ca8a04"; // yellow-600
 const ACCENT_TO = "#ec5b13";
 
-const STATUS_STYLES: Record<PayoutStatus, { bg: string; text: string; icon: any; label: string }> = {
-  approved: { bg: "bg-emerald-50", text: "text-emerald-600", icon: CheckCircle2, label: "Approved" },
-  pending: { bg: "bg-amber-50", text: "text-amber-600", icon: AlertCircle, label: "Pending" },
-  rejected: { bg: "bg-red-50", text: "text-red-600", icon: XCircle, label: "Rejected" },
+const STATUS_STYLES: Record<
+  PayoutStatus,
+  { bg: string; text: string; icon: any; label: string }
+> = {
+  approved: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-600",
+    icon: CheckCircle2,
+    label: "Approved",
+  },
+  pending: {
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    icon: AlertCircle,
+    label: "Pending",
+  },
+  rejected: {
+    bg: "bg-red-50",
+    text: "text-red-600",
+    icon: XCircle,
+    label: "Rejected",
+  },
 };
 
 export default function RevenuePage() {
@@ -123,36 +151,57 @@ export default function RevenuePage() {
       icon: role === "user" ? Clock : Wallet,
       color: role === "user" ? "#059669" : "#f59e0b",
       highlight: true,
-      subtitle: role === "user" ? "Available for withdrawal." : "Commission you can withdraw.",
+      subtitle:
+        role === "user"
+          ? "Available for withdrawal."
+          : "Commission you can withdraw.",
     },
   ];
 
   if (loading && !totalRevenue) {
     return (
-      <LinearGradient colors={["#F5F3FF", "#F8F8FC", "#FFFFFF"]} style={{ flex: 1 }}>
+      <LinearGradient
+        colors={["#F5F3FF", "#F8F8FC", "#FFFFFF"]}
+        style={{ flex: 1 }}
+      >
         <SafeAreaView className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={ACCENT_TO} />
-          <Text className="text-sm text-slate-400 mt-3">Loading your revenue…</Text>
+          <Text className="text-sm text-slate-400 mt-3">
+            Loading your revenue…
+          </Text>
         </SafeAreaView>
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={["#F5F3FF", "#F8F8FC", "#FFFFFF"]} style={{ flex: 1 }}>
+    <LinearGradient
+      colors={["#F5F3FF", "#F8F8FC", "#FFFFFF"]}
+      style={{ flex: 1 }}
+    >
       <SafeAreaView className="flex-1">
         <View className="flex-1">
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 170 }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 24,
+              paddingBottom: 170,
+            }}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={ACCENT_TO} />
+              <RefreshControl
+                refreshing={loading}
+                onRefresh={refetch}
+                tintColor={ACCENT_TO}
+              />
             }
           >
             {/* ── HEADER ── */}
             <View className="flex-row items-start justify-between">
               <View>
-                <Text className="text-2xl font-bold text-slate-900">Revenue Overview</Text>
+                <Text className="text-2xl font-bold text-slate-900">
+                  Revenue Overview
+                </Text>
                 <Text className="text-sm text-slate-400 mt-0.5">
                   Track all collected revenue from music platforms.
                 </Text>
@@ -165,12 +214,20 @@ export default function RevenuePage() {
               </View>
             )}
 
-            <TouchableOpacity onPress={() => setShowDialog(true)} activeOpacity={0.85} className="mt-4 self-start">
+            <TouchableOpacity
+              onPress={() => setShowDialog(true)}
+              activeOpacity={0.85}
+              className="mt-4 self-start"
+            >
               <LinearGradient
                 colors={[ACCENT_FROM, ACCENT_TO]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{ borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 }}
+                style={{
+                  borderRadius: 12,
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                }}
               >
                 <View className="flex-row items-center gap-2">
                   <Send size={16} color="#fff" />
@@ -196,15 +253,27 @@ export default function RevenuePage() {
                     <Filter size={16} color="#4f46e5" />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-slate-800">Payout History</Text>
-                    <Text className="text-xs text-slate-400">Filter by month and year</Text>
+                    <Text className="text-base font-semibold text-slate-800">
+                      Payout History
+                    </Text>
+                    <Text className="text-xs text-slate-400">
+                      Filter by month and year
+                    </Text>
                   </View>
-                  {payoutsLoading && <ActivityIndicator size="small" color="#4f46e5" />}
+                  {payoutsLoading && (
+                    <ActivityIndicator size="small" color="#4f46e5" />
+                  )}
                 </View>
 
                 <View className="flex-row gap-2 mt-3">
-                  <SelectField label={month} onPress={() => setMonthPickerOpen(true)} />
-                  <SelectField label={year} onPress={() => setYearPickerOpen(true)} />
+                  <SelectField
+                    label={month}
+                    onPress={() => setMonthPickerOpen(true)}
+                  />
+                  <SelectField
+                    label={year}
+                    onPress={() => setYearPickerOpen(true)}
+                  />
                 </View>
               </View>
 
@@ -241,14 +310,20 @@ export default function RevenuePage() {
                       key={item.platform}
                       platform={item.platform}
                       amount={item.rawAmount}
-                      percentage={breakdownTotal ? (item.rawAmount / breakdownTotal) * 100 : 0}
+                      percentage={
+                        breakdownTotal
+                          ? (item.rawAmount / breakdownTotal) * 100
+                          : 0
+                      }
                       color={item.color}
                     />
                   ))}
                 </View>
               ) : (
                 <View className="items-center justify-center py-8">
-                  <Text className="text-xs text-slate-400">No revenue data yet</Text>
+                  <Text className="text-xs text-slate-400">
+                    No revenue data yet
+                  </Text>
                 </View>
               )}
             </View>
@@ -318,7 +393,12 @@ function StatCard({
     return (
       <LinearGradient
         colors={["#ecfdf5", "#f0fdfa"]}
-        style={{ borderRadius: 16, padding: 18, borderWidth: 1, borderColor: "#a7f3d0" }}
+        style={{
+          borderRadius: 16,
+          padding: 18,
+          borderWidth: 1,
+          borderColor: "#a7f3d0",
+        }}
       >
         <View className="flex-row items-start justify-between">
           <View>
@@ -326,7 +406,9 @@ function StatCard({
               {title}
             </Text>
             <Text className="text-2xl font-bold text-emerald-700">{value}</Text>
-            {!!subtitle && <Text className="text-xs text-emerald-500 mt-1">{subtitle}</Text>}
+            {!!subtitle && (
+              <Text className="text-xs text-emerald-500 mt-1">{subtitle}</Text>
+            )}
           </View>
           <View className="w-11 h-11 rounded-xl bg-emerald-100 items-center justify-center">
             <Icon size={20} color={color} />
@@ -353,7 +435,13 @@ function StatCard({
   );
 }
 
-function SelectField({ label, onPress }: { label: string; onPress: () => void }) {
+function SelectField({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -381,7 +469,12 @@ function PickerModal({
   onClose: () => void;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View className="flex-1 bg-black/40 justify-end">
         <View className="bg-white rounded-t-2xl max-h-[70%]">
           <View className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -418,17 +511,36 @@ function PayoutRow({ payout }: { payout: NormalizedPayout }) {
   const s = STATUS_STYLES[payout.status];
   const Icon = s.icon;
   const d = new Date(payout.date);
-  const dateLabel = d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+  const dateLabel = d.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
   return (
     <View className="flex-row items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
       <View className="flex-1">
         <Text className="text-sm text-slate-700">{dateLabel}</Text>
-        <Text className="text-xs text-slate-400 mt-0.5">{payout.notes || "—"}</Text>
+        <Text className="text-xs text-slate-400 mt-0.5">
+          {payout.notes || "—"}
+        </Text>
       </View>
-      <Text className="text-sm font-semibold text-slate-800 mr-3">${payout.amount.toFixed(2)}</Text>
-      <View className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${s.bg}`}>
-        <Icon size={12} color={s.text.includes("emerald") ? "#059669" : s.text.includes("amber") ? "#d97706" : "#dc2626"} />
+      <Text className="text-sm font-semibold text-slate-800 mr-3">
+        ${payout.amount.toFixed(2)}
+      </Text>
+      <View
+        className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${s.bg}`}
+      >
+        <Icon
+          size={12}
+          color={
+            s.text.includes("emerald")
+              ? "#059669"
+              : s.text.includes("amber")
+                ? "#d97706"
+                : "#dc2626"
+          }
+        />
         <Text className={`text-xs font-semibold ${s.text}`}>{s.label}</Text>
       </View>
     </View>
@@ -449,23 +561,36 @@ function PlatformBar({
   const widthAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-  Animated.timing(widthAnim, {
-    toValue: percentage,
-    duration: 700,
-    useNativeDriver: false,
-  }).start();
-}, [percentage]);
+    Animated.timing(widthAnim, {
+      toValue: percentage,
+      duration: 700,
+      useNativeDriver: false,
+    }).start();
+  }, [percentage]);
 
   return (
     <View>
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center gap-2">
-          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
-          <Text className="text-sm font-semibold text-slate-700">{platform}</Text>
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: color,
+            }}
+          />
+          <Text className="text-sm font-semibold text-slate-700">
+            {platform}
+          </Text>
         </View>
         <View className="flex-row items-center gap-3">
-          <Text className="text-xs text-slate-400">{percentage.toFixed(1)}%</Text>
-          <Text className="text-sm font-bold text-slate-800">${amount.toFixed(2)}</Text>
+          <Text className="text-xs text-slate-400">
+            {percentage.toFixed(1)}%
+          </Text>
+          <Text className="text-sm font-bold text-slate-800">
+            ${amount.toFixed(2)}
+          </Text>
         </View>
       </View>
       <View className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
@@ -510,7 +635,12 @@ function WithdrawDialog({
   const isValid = !!amount && Number(amount) > 0 && remaining >= 0;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onRequestClose={onClose}
+    >
       <View className="flex-1 bg-black/30 items-center justify-center px-6">
         <View className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-2xl p-6">
           {/* Header */}
@@ -522,9 +652,15 @@ function WithdrawDialog({
               <Text className="text-lg font-bold text-slate-800">
                 {role === "user" ? "Withdraw Earnings" : "Withdraw Commission"}
               </Text>
-              <Text className="text-xs text-slate-400">Funds processed within 3–5 days</Text>
+              <Text className="text-xs text-slate-400">
+                Funds processed within 3–5 days
+              </Text>
             </View>
-            <TouchableOpacity onPress={onClose} className="p-1" disabled={submitting}>
+            <TouchableOpacity
+              onPress={onClose}
+              className="p-1"
+              disabled={submitting}
+            >
               <X size={18} color="#94a3b8" />
             </TouchableOpacity>
           </View>
@@ -534,11 +670,15 @@ function WithdrawDialog({
             <Text className="text-xs text-slate-400 mb-1">
               {role === "user" ? "Available Balance" : "Total Commission"}
             </Text>
-            <Text className="text-2xl font-bold text-slate-800">${balance.toFixed(2)}</Text>
+            <Text className="text-2xl font-bold text-slate-800">
+              ${balance.toFixed(2)}
+            </Text>
           </View>
 
           {/* Input */}
-          <Text className="text-sm font-medium text-slate-700 mb-1.5">Amount to Withdraw</Text>
+          <Text className="text-sm font-medium text-slate-700 mb-1.5">
+            Amount to Withdraw
+          </Text>
           <View className="flex-row items-center border border-slate-200 rounded-xl px-3 mb-2">
             <Text className="text-slate-400 font-semibold mr-1">$</Text>
             <TextInput
@@ -559,13 +699,19 @@ function WithdrawDialog({
           {/* Remaining */}
           <View
             className={`flex-row items-center justify-between rounded-lg px-4 py-2.5 mb-5 border ${
-              remaining < 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"
+              remaining < 0
+                ? "bg-red-50 border-red-200"
+                : "bg-emerald-50 border-emerald-200"
             }`}
           >
-            <Text className={`text-sm font-medium ${remaining < 0 ? "text-red-600" : "text-emerald-700"}`}>
+            <Text
+              className={`text-sm font-medium ${remaining < 0 ? "text-red-600" : "text-emerald-700"}`}
+            >
               Remaining after withdrawal
             </Text>
-            <Text className={`text-sm font-medium ${remaining < 0 ? "text-red-600" : "text-emerald-700"}`}>
+            <Text
+              className={`text-sm font-medium ${remaining < 0 ? "text-red-600" : "text-emerald-700"}`}
+            >
               ${remaining.toFixed(2)}
             </Text>
           </View>
@@ -590,13 +736,19 @@ function WithdrawDialog({
                   colors={["#4f46e5", "#7c3aed"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 12, paddingVertical: 10, alignItems: "center" }}
+                  style={{
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                  }}
                 >
-                  <Text className="text-white text-sm font-semibold">Confirm</Text>
+                  <Text className="text-white text-sm font-semibold">
+                    Confirm
+                  </Text>
                 </LinearGradient>
               ) : (
                 <View className="rounded-xl py-2.5 items-center bg-slate-300 flex-row justify-center gap-2">
-                  {submitting && <ActivityIndicator size="small" color="#fff" />}
+                  {submitting && <ActivityIndicator />}
                   <Text className="text-white text-sm font-semibold">
                     {submitting ? "Submitting…" : "Confirm"}
                   </Text>

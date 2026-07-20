@@ -1,15 +1,15 @@
 // lib/supabaseClient.ts
-import "react-native-url-polyfill/auto";
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
+import { Platform } from "react-native";
+import "react-native-url-polyfill/auto";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error(
-    "Missing Supabase env vars — check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env"
+    "Missing Supabase env vars — check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env",
   );
 }
 

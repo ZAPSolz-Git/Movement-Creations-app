@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -80,6 +81,7 @@ export default function Login() {
               flexGrow: 1,
               justifyContent: "center",
               minHeight: "100%",
+
               paddingHorizontal: 16,
               paddingVertical: 32,
             }}
@@ -87,7 +89,11 @@ export default function Login() {
           >
             <View className="items-center">
               <View className="h-16 w-16 items-center justify-center rounded-2xl bg-violet-600 shadow-lg">
-                <Text className="text-2xl font-bold text-white">MC</Text>
+                <Image
+                  source={require("./images/logo.png")}
+                  className="h-6 w-6"
+                  resizeMode="contain"
+                />
               </View>
 
               <Text className="mt-4 text-center text-4xl font-bold text-gray-900 md:text-5xl">
@@ -95,7 +101,7 @@ export default function Login() {
               </Text>
 
               <Text className="mt-2 text-base text-gray-500 md:text-lg">
-                Artist Studio Login
+                Users Login
               </Text>
             </View>
 
@@ -216,28 +222,28 @@ export default function Login() {
                 )}
               </TouchableOpacity>
 
-              <View className="my-8 flex-row items-center">
+              {/* <View className="my-8 flex-row items-center">
                 <View className="h-px flex-1 bg-gray-300" />
 
                 <Text className="mx-4 text-gray-500">OR</Text>
 
                 <View className="h-px flex-1 bg-gray-300" />
-              </View>
+              </View> */}
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 disabled={loading}
                 className="flex-row items-center justify-center rounded-xl border border-gray-300 py-4"
-              >
+               >
                 <MaterialIcons name="fingerprint" size={22} color="#666" />
 
                 <Text className="ml-2 font-semibold text-gray-700">
                   Secure Sign-in
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View className="mt-8 items-center text-center">
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => !loading && router.push("/home")}
                 disabled={loading}
               >
@@ -247,7 +253,7 @@ export default function Login() {
                     Join the collective
                   </Text>
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <View className="mt-8 flex-col items-center gap-2 md:flex-row md:gap-4">
                 <Text className="font-medium text-gray-500">
