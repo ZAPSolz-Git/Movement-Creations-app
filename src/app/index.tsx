@@ -88,10 +88,10 @@ export default function Login() {
             keyboardShouldPersistTaps="handled"
           >
             <View className="items-center">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-violet-600 shadow-lg">
+              <View className="h-16 w-16 items-center justify-center ">
                 <Image
-                  source={require("./images/logo.png")}
-                  className="h-6 w-6"
+                  source={require("../../assets/images/logo.png")}
+                  className=""
                   resizeMode="contain"
                 />
               </View>
