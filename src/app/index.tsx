@@ -88,17 +88,19 @@ export default function Login() {
             keyboardShouldPersistTaps="handled"
           >
             <View className="items-center">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-violet-600 shadow-lg">
+              <View className="h-16 w-16 items-center justify-center ">
                 <Image
-                  source={require("./images/logo.png")}
-                  className="h-6 w-6"
-                  resizeMode="contain"
+                  source={require("../../assets/images/logo.png")}
+                  style={{
+                    width: 130,
+                    height: 130,
+                  }}
                 />
               </View>
 
-              <Text className="mt-4 text-center text-4xl font-bold text-gray-900 md:text-5xl">
+              {/* <Text className="mt-4 text-center text-4xl font-bold text-gray-900 md:text-5xl">
                 Movement Creations
-              </Text>
+              </Text> */}
 
               <Text className="mt-2 text-base text-gray-500 md:text-lg">
                 Users Login
