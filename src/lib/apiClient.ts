@@ -32,10 +32,102 @@ const isApiRoute = (config?: InternalAxiosRequestConfig) => {
   return url.includes("/api/");
 };
 
-const showApiToast = (type: "success" | "error", message?: string) => {
+const getToastContext = (config?: InternalAxiosRequestConfig) => {
+  const url = (config?.url ?? "").toLowerCase();
+  const method = (config?.method ?? "get").toLowerCase();
+
+  if (url.includes("/api/submissions")) {
+    if (method === "get") {
+      return {
+        successTitle: "Releases loaded",
+        errorTitle: "Failed to load releases",
+      };
+    }
+    if (method === "post") {
+      return {
+        successTitle: "Release created",
+        errorTitle: "Failed to create release",
+      };
+    }
+    if (method === "put" || method === "patch") {
+      return {
+        successTitle: "Release updated",
+        errorTitle: "Failed to update release",
+      };
+    }
+    if (method === "delete") {
+      return {
+        successTitle: "Release deleted",
+        errorTitle: "Failed to delete release",
+      };
+    }
+  }
+
+  if (url.includes("/api/user/")) {
+    if (url.includes("/withdraw-request")) {
+      return {
+        successTitle: "Withdrawal request submitted",
+        errorTitle: "Withdrawal request failed",
+      };
+    }
+
+    return {
+      successTitle: "Revenue data loaded",
+      errorTitle: "Failed to load revenue data",
+    };
+  }
+
+  if (url.includes("/api/reports")) {
+    return {
+      successTitle: "Reports loaded",
+      errorTitle: "Failed to load reports",
+    };
+  }
+
+  if (url.includes("/api/tickets")) {
+    if (method === "get") {
+      return {
+        successTitle: "Support tickets loaded",
+        errorTitle: "Failed to load support tickets",
+      };
+    }
+    if (method === "post") {
+      return {
+        successTitle: "Support ticket created",
+        errorTitle: "Failed to create support ticket",
+      };
+    }
+    if (method === "put" || method === "patch") {
+      return {
+        successTitle: "Support ticket updated",
+        errorTitle: "Failed to update support ticket",
+      };
+    }
+    if (method === "delete") {
+      return {
+        successTitle: "Support ticket deleted",
+        errorTitle: "Failed to delete support ticket",
+      };
+    }
+  }
+
+  return {
+    successTitle: "Success",
+    errorTitle: "Error",
+  };
+};
+
+const showApiToast = (
+  type: "success" | "error",
+  config: InternalAxiosRequestConfig | undefined,
+  message?: string,
+) => {
+  const toastContext = getToastContext(config);
+
   Toast.show({
     type,
-    text1: type === "success" ? "Success" : "Error",
+    text1:
+      type === "success" ? toastContext.successTitle : toastContext.errorTitle,
     text2:
       message ??
       (type === "success"
@@ -85,7 +177,7 @@ apiClient.interceptors.response.use(
       const data = response.data as
         { message?: string; detail?: string; error?: string } | undefined;
       const message = data?.message ?? data?.detail ?? data?.error;
-      showApiToast("success", message);
+      showApiToast("success", response.config, message);
     }
     return response;
   },
@@ -100,7 +192,11 @@ apiClient.interceptors.response.use(
       const data = error.response?.data as
         { message?: string; detail?: string; error?: string } | undefined;
       const message = data?.message ?? data?.detail ?? data?.error;
-      showApiToast("error", message ?? "Something went wrong.");
+      showApiToast(
+        "error",
+        originalRequest,
+        message ?? "Something went wrong.",
+      );
     }
 
     if (status !== 401 || originalRequest?._retry) {
