@@ -11,28 +11,26 @@ import {
   PhoneOutgoing,
   Search,
   Sparkles,
-  Trash2,
-  X,
+  Trash2
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
+  Linking,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
 
+import ReleaseViewModal from "@/components/ReleaseViewModal";
 import { Release, ReleaseType, useReleasesData } from "@/hooks/useReleaseData";
 import { apiClient } from "../../lib/apiClient"; // ⚠️ adjust path if needed
-import ReleaseViewModal from "@/components/ReleaseViewModal";
-
 
 const PAGE_SIZE = 5;
 const ACCENT = "#ec5b13";
@@ -194,7 +192,9 @@ export default function ReleasePage() {
               icon={Disc}
               count={counts.audio}
               colors={["#f43f5e", "#ec4899", "#9333ea"]}
-              onPress={() => handleCreate("audio")}
+              onPress={() =>
+                Linking.openURL("https://movementcreations.in/login")
+              }
             />
 
             <CreateActionCard
@@ -203,7 +203,9 @@ export default function ReleasePage() {
               icon={Bell}
               count={counts.ringtone}
               colors={["#10b981", "#14b8a6", "#06b6d4"]}
-              onPress={() => handleCreate("ringtone")}
+              onPress={() =>
+                Linking.openURL("https://movementcreations.in/login")
+              }
             />
           </View>
 
@@ -399,8 +401,6 @@ export default function ReleasePage() {
   );
 }
 
-
-
 function CreateActionCard({
   title,
   description,
@@ -566,4 +566,3 @@ function Detail({ label, value }: { label: string; value?: string }) {
     </View>
   );
 }
-
