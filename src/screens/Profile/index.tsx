@@ -513,24 +513,30 @@ export default function ProfilePage() {
       <SafeAreaView className="flex-1">
         <View className="flex-1">
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 170 }}
+           contentContainerStyle={{
+    paddingHorizontal:24,
+    paddingTop:32,
+    paddingBottom:200,
+}}
             showsVerticalScrollIndicator={false}
           >
             {/* ── HEADER ── */}
             <View className="flex-row items-start justify-between">
               <View className="flex-row items-center gap-2 flex-1">
-                <UserCircle size={26} color={ACCENT} />
-                <Text className="text-2xl font-bold text-slate-900">My Profile</Text>
+                <UserCircle size={34} color={ACCENT} />
+<Text className="text-3xl font-bold text-slate-900">
+  My Profile
+</Text>
               </View>
             </View>
-            <Text className="text-sm text-slate-500 mt-1">
+            <Text className="text-base text-slate-500 mt-1">
               Manage your personal, business, and security information.
             </Text>
 
             <TouchableOpacity onPress={() => setShowConfirmDialog(true)} activeOpacity={0.85} className="mt-4 self-start">
               <View className="flex-row items-center gap-2 rounded-xl px-5 py-2.5" style={{ backgroundColor: ACCENT }}>
                 <Save size={15} color="#fff" />
-                <Text className="text-white text-sm font-semibold">Save Profile</Text>
+                <Text className="text-white text-base font-semibold">Save Profile</Text>
               </View>
             </TouchableOpacity>
 
@@ -543,18 +549,18 @@ export default function ProfilePage() {
                   <TouchableOpacity
                     key={tab.value}
                     onPress={() => setActiveTab(tab.value)}
-                    className={`flex-row items-center gap-1.5 px-3.5 py-2 rounded-lg ${active ? "" : "bg-slate-100"}`}
+                    className={`flex-row items-center gap-2 px-5 py-3 rounded-xl ${active ? "" : "bg-slate-100"}`}
                     style={active ? { backgroundColor: ACCENT } : undefined}
                   >
-                    <Icon size={13} color={active ? "#fff" : "#64748b"} />
-                    <Text className={`text-xs font-semibold ${active ? "text-white" : "text-slate-600"}`}>{tab.label}</Text>
+                    <Icon size={18} color={active ? "#fff" : "#64748b"} />
+                    <Text className={`text-base font-semibold ${active ? "text-white" : "text-slate-600"}`}>{tab.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
 
             {/* ── TAB CONTENT ── */}
-            <View className="mt-5 bg-white/70 border border-slate-200 rounded-2xl p-5">
+            <View className="mt-6 bg-white/70 border border-slate-200 rounded-3xl p-7">
               {activeTab === "general" && (
                 <ProfileSection title="General Information" fields={GENERAL_FIELDS} profile={profile} onChange={handleFieldChange} />
               )}
@@ -607,9 +613,9 @@ export default function ProfilePage() {
       {/* ── SAVE CONFIRMATION MODAL ── */}
       <Modal visible={showConfirmDialog} animationType="fade" transparent onRequestClose={() => setShowConfirmDialog(false)}>
         <View className="flex-1 bg-black/30 items-center justify-center px-6">
-          <View className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-2xl p-6">
+          <View className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-8">
             <Text className="text-lg font-bold text-slate-900 mb-1.5">Confirm Profile Submission</Text>
-            <Text className="text-sm text-slate-500 mb-5">
+            <Text className="text-base text-slate-500 mb-5">
               Are you sure you want to save your profile? Make sure all details are correct.
             </Text>
             <View className="flex-row gap-3">
@@ -617,7 +623,7 @@ export default function ProfilePage() {
                 onPress={() => setShowConfirmDialog(false)}
                 className="flex-1 items-center px-4 py-2.5 rounded-xl border border-slate-200"
               >
-                <Text className="text-slate-600 text-sm font-medium">Cancel</Text>
+                <Text className="text-slate-600 text-base font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveProfile}
@@ -626,7 +632,7 @@ export default function ProfilePage() {
                 style={{ backgroundColor: ACCENT }}
               >
                 {isSaving && <ActivityIndicator size="small" color="#fff" />}
-                <Text className="text-white text-sm font-semibold">{isSaving ? "Saving..." : "Yes, Save"}</Text>
+                <Text className="text-white text-base font-semibold">{isSaving ? "Saving..." : "Yes, Save"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -655,7 +661,7 @@ function ProfileField({
   return (
     <View className="mb-4">
       <View className="flex-row items-center gap-1.5 mb-1.5">
-        <Text className="text-sm font-medium text-slate-700">{label}</Text>
+        <Text className="text-base font-medium text-slate-700">{label}</Text>
         {disabled && <Lock size={11} color="#94a3b8" />}
       </View>
       <TextInput
@@ -664,7 +670,7 @@ function ProfileField({
         editable={!disabled}
         placeholder={label}
         placeholderTextColor="#cbd5e1"
-        className={`rounded-lg px-3 py-2.5 text-sm border ${
+        className={`rounded-lg px-3 py-2.5 text-base border ${
           disabled ? "bg-slate-100 border-slate-200 text-slate-400" : "bg-white border-slate-300 text-slate-900"
         }`}
       />
@@ -781,7 +787,7 @@ function PasswordField({
 }) {
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-slate-700 mb-1.5">{label}</Text>
+      <Text className="text-base font-medium text-slate-700 mb-1.5">{label}</Text>
       <View className="flex-row items-center border border-slate-300 rounded-lg bg-white pr-3">
         <TextInput
           value={value}
@@ -789,7 +795,7 @@ function PasswordField({
           secureTextEntry={!show}
           placeholder={label}
           placeholderTextColor="#cbd5e1"
-          className="flex-1 px-3 py-2.5 text-sm text-slate-900"
+          className="flex-1 px-3 py-2.5 text-base text-slate-900"
         />
         <TouchableOpacity onPress={onToggleShow}>
           {show ? <EyeOff size={17} color="#94a3b8" /> : <Eye size={17} color="#94a3b8" />}
@@ -853,7 +859,7 @@ function PasswordTab({
       <View className="flex-row flex-wrap gap-3 mt-2">
         <TouchableOpacity onPress={onGeneratePassword} className="flex-row items-center gap-1.5 border border-slate-300 rounded-lg px-3.5 py-2.5">
           <RefreshCw size={14} color="#475569" />
-          <Text className="text-sm font-medium text-slate-600">Generate Password</Text>
+          <Text className="text-base font-medium text-slate-600">Generate Password</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -863,7 +869,7 @@ function PasswordTab({
           style={{ backgroundColor: ACCENT }}
         >
           {isChangingPassword ? <ActivityIndicator size="small" color="#fff" /> : <Save size={14} color="#fff" />}
-          <Text className="text-white text-sm font-semibold">{isChangingPassword ? "Updating..." : "Change Password"}</Text>
+          <Text className="text-white text-base font-semibold">{isChangingPassword ? "Updating..." : "Change Password"}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -901,7 +907,7 @@ function MusicLabelsTab({
               onChangeText={(v) => onUpdateLabel(i, v)}
               placeholder={`Music Label ${i + 1}`}
               placeholderTextColor="#cbd5e1"
-              className="flex-1 rounded-lg px-3 py-2.5 text-sm border border-slate-300 bg-white text-slate-900"
+              className="flex-1 rounded-lg px-3 py-2.5 text-base border border-slate-300 bg-white text-slate-900"
             />
             <TouchableOpacity 
               onPress={() => onRemoveLabel(i)}
@@ -920,7 +926,7 @@ function MusicLabelsTab({
         style={{ borderColor: ACCENT }}
       >
         <PlusCircle size={14} color={ACCENT} />
-        <Text style={{ color: ACCENT }} className="text-sm font-medium">
+        <Text style={{ color: ACCENT }} className="text-base font-medium">
           Add Music Label
         </Text>
       </TouchableOpacity>
