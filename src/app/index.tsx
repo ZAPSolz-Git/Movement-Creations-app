@@ -91,14 +91,16 @@ export default function Login() {
               <View className="h-16 w-16 items-center justify-center ">
                 <Image
                   source={require("../../assets/images/logo.png")}
-                  className=""
-                  resizeMode="contain"
+                  style={{
+                    width: 130,
+                    height: 130,
+                  }}
                 />
               </View>
 
-              <Text className="mt-4 text-center text-4xl font-bold text-gray-900 md:text-5xl">
+              {/* <Text className="mt-4 text-center text-4xl font-bold text-gray-900 md:text-5xl">
                 Movement Creations
-              </Text>
+              </Text> */}
 
               <Text className="mt-2 text-base text-gray-500 md:text-lg">
                 Users Login
