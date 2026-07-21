@@ -17,7 +17,14 @@
         "backgroundImage": "./assets/images/logo.png",
         "monochromeImage": "./assets/images/logo.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "package": "com.movementcreations.movementcreations"
     },
     "web": {
       "bundler": "metro",
@@ -36,11 +43,18 @@
       ],
       "expo-secure-store",
       "expo-sharing",
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9507fda3-2d25-43fe-ab64-b9152602391c"
+      }
     }
   }
 }

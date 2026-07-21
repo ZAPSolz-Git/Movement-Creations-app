@@ -27,7 +27,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
-
+import { Modal } from "react-native";
 import ReleaseViewModal from "@/components/ReleaseViewModal";
 import { Release, ReleaseType, useReleasesData } from "@/hooks/useReleaseData";
 import { apiClient } from "../../lib/apiClient"; // ⚠️ adjust path if needed
@@ -60,7 +60,8 @@ export default function ReleasePage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [viewingRelease, setViewingRelease] = useState<Release | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-
+  const [loginPromptVisible, setLoginPromptVisible] = useState(false);
+const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone">("audio");
   /* ── live data from backend ── */
   const { releases, loading, error, refetch } = useReleasesData(activeTab);
 
@@ -186,27 +187,29 @@ export default function ReleasePage() {
 
           {/* ── CREATE CARDS ── */}
           <View className="flex-row flex-wrap gap-3 mt-6">
-            <CreateActionCard
-              title="New Audio"
-              description="Singles, EPs, albums"
-              icon={Disc}
-              count={counts.audio}
-              colors={["#f43f5e", "#ec4899", "#9333ea"]}
-              onPress={() =>
-                Linking.openURL("https://movementcreations.in/login")
-              }
-            />
+     <CreateActionCard
+  title="New Audio"
+  description="Singles, EPs, albums"
+  icon={Disc}
+  count={counts.audio}
+  colors={["#f43f5e", "#ec4899", "#9333ea"]}
+  onPress={() => {
+    setLoginPromptType("audio");
+    setLoginPromptVisible(true);
+  }}
+/>
 
-            <CreateActionCard
-              title="New Ringtone"
-              description="Ringtones for mobile"
-              icon={Bell}
-              count={counts.ringtone}
-              colors={["#10b981", "#14b8a6", "#06b6d4"]}
-              onPress={() =>
-                Linking.openURL("https://movementcreations.in/login")
-              }
-            />
+<CreateActionCard
+  title="New Ringtone"
+  description="Ringtones for mobile"
+  icon={Bell}
+  count={counts.ringtone}
+  colors={["#10b981", "#14b8a6", "#06b6d4"]}
+  onPress={() => {
+    setLoginPromptType("ringtone");
+    setLoginPromptVisible(true);
+  }}
+/>
           </View>
 
           {/* ── PANEL ── */}
@@ -390,6 +393,66 @@ export default function ReleasePage() {
 
         <Footer />
       </View>
+
+      <Modal
+  visible={loginPromptVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setLoginPromptVisible(false)}
+>
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: "rgba(15, 23, 42, 0.55)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    }}
+  >
+    <View
+      style={{
+        width: "100%",
+        maxWidth: 380,
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 20,
+      }}
+    >
+      <View className="flex-row items-start justify-between">
+        <View
+          className="h-11 w-11 items-center justify-center rounded-2xl"
+          style={{ backgroundColor: `${ACCENT}1A` }}
+        >
+          <Sparkles size={20} color={ACCENT} />
+        </View>
+        <TouchableOpacity
+          onPress={() => setLoginPromptVisible(false)}
+          className="p-1"
+        >
+        
+        </TouchableOpacity>
+      </View>
+
+      <Text className="text-lg font-bold text-slate-900 mt-4">
+        Log in to continue
+      </Text>
+      <Text className="text-sm text-slate-500 mt-1.5 leading-5">
+        To release your {loginPromptType === "audio" ? "audio" : "ringtone"}, please
+        log in to Movement Creations on the website at your desktop                                                                                                     .
+      </Text>
+
+      <View className="flex-row gap-2 mt-5">
+        <TouchableOpacity
+          onPress={() => setLoginPromptVisible(false)}
+          className="flex-1 items-center justify-center rounded-xl border border-slate-200 py-3"
+        >
+          <Text className="text-slate-600 font-medium">Cancel</Text>
+        </TouchableOpacity>
+        
+      </View>
+    </View>
+  </View>
+</Modal>
 
       {/* ── DETAILS MODAL ── */}
       <ReleaseViewModal

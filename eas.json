@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">=16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backmovc.movementcreations.in",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhua2d1eWJ5ZGRma2Z3YnpmZ29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3ODI2MjgsImV4cCI6MjA4NjM1ODYyOH0.zEeDSH3lBVhAhlwGKA4p1dnBumEayUo7H_IzjpCORDU",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xnkguybyddfkfwbzfgop.supabase.co"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
