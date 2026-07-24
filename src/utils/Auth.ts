@@ -1,10 +1,13 @@
 // utils/Auth.ts
-import { tokenStorage } from "../lib/tokenStorage";
+import { SESSION_DURATION_MS, SessionService } from "../services/SessionService";
 
-export const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour — match backend JWT expiry
+export { SESSION_DURATION_MS };
 
+// Full wipe (tokens + biometric flag + device binding + supabase sign-out) —
+// a stale biometric flag with an unrecoverable session would otherwise keep
+// failing silently on every app launch.
 export const clearAuthStorage = async (): Promise<void> => {
-  await tokenStorage.clearTokens();
+  await SessionService.clearSession();
 };
 
 export const logoutAndClearAuth = async (): Promise<void> => {

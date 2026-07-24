@@ -12,7 +12,7 @@ import { logoutAndClearAuth } from "../utils/Auth";
 const PUBLIC_ROUTE = "/";
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, needsBiometricUnlock, holdAutoRedirect } = useAuth();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -26,20 +26,26 @@ function RootLayoutNav() {
       return;
     }
 
-    if (user && isPublicRoute) {
-      // Already logged in, sitting on the login screen
+    if (user && isPublicRoute && !needsBiometricUnlock && !holdAutoRedirect) {
+      // Already logged in and unlocked, sitting on the login screen
       router.replace("/home");
     }
-  }, [user, loading, pathname]);
+  }, [user, loading, pathname, needsBiometricUnlock, holdAutoRedirect]);
 
   // Block rendering protected screens until we've resolved auth state,
-  // and block rendering while a redirect is about to happen.
+  // and block rendering while a redirect is about to happen. A restored
+  // session that still needs a biometric unlock — or a login screen mid
+  // post-login flow (e.g. the "Enable Face ID?" modal) — stays parked on
+  // the login screen instead of being raced past by this effect.
   if (loading) {
     return <Loader />;
   }
 
   const isPublicRoute = pathname === PUBLIC_ROUTE;
-  if ((!user && !isPublicRoute) || (user && isPublicRoute)) {
+  if (
+    (!user && !isPublicRoute) ||
+    (user && isPublicRoute && !needsBiometricUnlock && !holdAutoRedirect)
+  ) {
     return <Loader />;
   }
 

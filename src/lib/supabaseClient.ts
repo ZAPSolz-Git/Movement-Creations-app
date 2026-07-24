@@ -1,5 +1,4 @@
 // lib/supabaseClient.ts
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 import "react-native-url-polyfill/auto";
@@ -13,41 +12,40 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
-// ── SSR-safe storage adapter ──
-// On web, Expo Router's static output renders on Node (no `window`).
-// Supabase's auth client reads storage at construction time, so it must
-// never touch window/localStorage/AsyncStorage during that server pass.
-const ssrSafeStorage = {
+// ── SSR-safe web storage adapter ──
+// On web, Expo Router's static output renders on Node (no `window`), so this
+// must never touch localStorage during that server pass.
+const webStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (Platform.OS === "web") {
-      if (typeof window === "undefined") return null; // SSR pass — no-op
-      return window.localStorage.getItem(key);
-    }
-    return AsyncStorage.getItem(key);
+    if (typeof window === "undefined") return null; // SSR pass — no-op
+    return window.localStorage.getItem(key);
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (Platform.OS === "web") {
-      if (typeof window === "undefined") return;
-      window.localStorage.setItem(key, value);
-      return;
-    }
-    await AsyncStorage.setItem(key, value);
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(key, value);
   },
   removeItem: async (key: string): Promise<void> => {
-    if (Platform.OS === "web") {
-      if (typeof window === "undefined") return;
-      window.localStorage.removeItem(key);
-      return;
-    }
-    await AsyncStorage.removeItem(key);
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem(key);
   },
 };
 
+// Native sessions are never persisted by the Supabase client itself — that
+// would put the refresh token in AsyncStorage. Instead SessionService owns
+// persistence via expo-secure-store (see services/SessionService.ts,
+// tokenStorage.ts) and rehydrates the client with setSession() on launch.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    storage: ssrSafeStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
+  auth:
+    Platform.OS === "web"
+      ? {
+          storage: webStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+        }
+      : {
+          autoRefreshToken: true,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
 });

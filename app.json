@@ -44,7 +44,13 @@
       "expo-secure-store",
       "expo-sharing",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Movement Creations to use Face ID to sign you in instantly."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

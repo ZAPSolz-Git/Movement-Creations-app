@@ -145,13 +145,13 @@ export default function HomePage() {
                 Welcome back,
               </Text>
               <Text className="text-white text-xl font-bold mt-0.5">
-                Let's check today's numbers
+                 Check today's Stats
               </Text>
               <Text className="text-white/60 text-xs mt-1">
                 Here's what's happening with your music platform today.
               </Text>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => router.push("/Release")}
                 className="mt-5 flex-row items-center justify-center rounded-xl bg-white/15 border border-white/20 py-3.5"
               >
@@ -159,7 +159,7 @@ export default function HomePage() {
                 <Text className="ml-2 text-base font-bold text-white">
                   Upload New Release
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </LinearGradient>
 
             {/* ── ERROR STATE ── */}

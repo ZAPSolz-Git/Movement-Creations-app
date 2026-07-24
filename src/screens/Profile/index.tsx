@@ -12,6 +12,7 @@ import {
   Save,
   Trash2,
   UserCircle,
+  
 } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -23,11 +24,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+   Linking, 
+  Clipboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Footer from "../../components/Footer";
 import { supabase } from "../../lib/supabaseClient";
-
+import { Mail, CheckCircle, XCircle } from "lucide-react-native";
 /* ─────────────────────────────────────────
    TYPES + STATIC DATA
 ───────────────────────────────────────── */
@@ -49,7 +52,7 @@ interface ProfileState {
   pincode: string;
   correspondence_address: string;
   correspondence_pincode: string;
-  pan_status: string;
+ 
   name_on_pan: string;
   pan_number: string;
   gst_number: string;
@@ -68,6 +71,15 @@ interface ProfileState {
   company_labels_locked: boolean;
 }
 
+type ChangeRequestField = {
+  key: string;
+  label: string;
+  currentValue: string;
+  newValue: string;
+  selected: boolean;
+};
+
+
 const INITIAL_PROFILE: ProfileState = {
   legal_entity: "",
   cin_reg_no: "",
@@ -78,7 +90,7 @@ const INITIAL_PROFILE: ProfileState = {
   pincode: "",
   correspondence_address: "",
   correspondence_pincode: "",
-  pan_status: "",
+  
   name_on_pan: "",
   pan_number: "",
   gst_number: "",
@@ -97,6 +109,10 @@ const INITIAL_PROFILE: ProfileState = {
   company_labels_locked: false,
 };
 
+
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+};
 const TABS_CONFIG: { value: TabKey; label: string; icon: any }[] = [
   { value: "general", label: "General", icon: UserCircle },
   { value: "management", label: "My Plan", icon: Briefcase },
@@ -111,19 +127,19 @@ const GENERAL_FIELDS = [
   { name: "cin_reg_no", label: "CIN / Registration No.", lockable: true },
   { name: "dob_doi", label: "Date of Birth / Incorporation", lockable: true },
   { name: "registered_address", label: "Registered Address", lockable: true },
-  { name: "country", label: "Country" },
-  { name: "city", label: "City" },
+  { name: "country", label: "Country", lockable: true },
+  { name: "city", label: "City", lockable: true },
   { name: "pincode", label: "Pincode", lockable: true },
   { name: "correspondence_address", label: "Correspondence Address (if different)", lockable: true },
   { name: "correspondence_pincode", label: "Correspondence Pincode" },
 ] as const;
 
 const TAX_FIELDS = [
-  { name: "pan_status", label: "PAN Status" },
-  { name: "name_on_pan", label: "Name on PAN Card" },
-  { name: "pan_number", label: "PAN Number" },
-  { name: "gst_number", label: "GST Number (if applicable)" },
-  { name: "gst_state", label: "GST State" },
+ 
+  { name: "name_on_pan", label: "Name on PAN Card", lockable: true },
+  { name: "pan_number", label: "PAN Number", lockable: true },
+  { name: "gst_number", label: "GST Number (if applicable)", lockable: true },
+  { name: "gst_state", label: "GST State", lockable: true },
 ] as const;
 
 const BANK_FIELDS = [
@@ -136,9 +152,9 @@ const BANK_FIELDS = [
 ] as const;
 
 const CONTRACT_FIELDS = [
-  { name: "contract_start_date", label: "Contract Start Date" },
-  { name: "contract_end_date", label: "Contract End Date" },
-  { name: "contract_status", label: "Contract Status" },
+  { name: "contract_start_date", label: "Contract Start Date", lockable: true },
+  { name: "contract_end_date", label: "Contract End Date", lockable: true },
+  { name: "contract_status", label: "Contract Status", lockable: true },
 ] as const;
 
 const USER_FIELDS = [
@@ -162,7 +178,7 @@ const PROFILE_FIELDS = [
   "correspondence_address",
   "correspondence_pincode",
   "authorized_signatory",
-  "pan_status",
+
   "name_on_pan",
   "pan_number",
   "gst_number",
@@ -180,14 +196,18 @@ const PROFILE_FIELDS = [
 const PLAN_LIMITS: Record<string, number> = { starter: 1, pro: 2, labels: 5 };
 const ACCENT = "#ec5b13";
 
-export default function ProfilePage() {
+export default function 
+ProfilePage() {
   const [profile, setProfile] = useState<ProfileState>(INITIAL_PROFILE);
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("general");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [showRequestModal, setShowRequestModal] = useState(false);
+const [changeFields, setChangeFields] = useState<ChangeRequestField[]>([]);
+const [additionalNotes, setAdditionalNotes] = useState("");
+const [isSendingRequest, setIsSendingRequest] = useState(false);
   // Password States
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
@@ -198,6 +218,132 @@ export default function ProfilePage() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+const initializeChangeFields = useCallback(() => {
+  const allFields = [
+    // General fields - only include ones with lockable: true
+    ...GENERAL_FIELDS
+      .filter(f => 'lockable' in f && f.lockable === true)
+      .map(f => ({ 
+        key: f.name, 
+        label: f.label, 
+        currentValue: (profile as any)[f.name] || "" 
+      })),
+    // Tax fields - only include ones with lockable: true
+    ...TAX_FIELDS
+      .filter(f => 'lockable' in f && f.lockable === true)
+      .map(f => ({ 
+        key: f.name, 
+        label: f.label, 
+        currentValue: (profile as any)[f.name] || "" 
+      })),
+    // Bank fields - only include ones with lockable: true
+    ...BANK_FIELDS
+      .filter(f => 'lockable' in f && f.lockable === true)
+      .map(f => ({ 
+        key: f.name, 
+        label: f.label, 
+        currentValue: (profile as any)[f.name] || "" 
+      })),
+    // Contract fields - only include ones with lockable: true
+    ...CONTRACT_FIELDS
+      .filter(f => 'lockable' in f && f.lockable === true)
+      .map(f => ({ 
+        key: f.name, 
+        label: f.label, 
+        currentValue: (profile as any)[f.name] || "" 
+      })),
+  ];
+
+  setChangeFields(allFields.map(f => ({
+    ...f,
+    newValue: "",
+    selected: false,
+  })));
+}, [profile]);
+// Add this function to handle sending the request
+const handleSendChangeRequest = async () => {
+  const selectedFields = changeFields.filter(f => f.selected && f.newValue.trim() !== "");
+  
+  if (selectedFields.length === 0) {
+    Alert.alert("No Changes", "Please select at least one field and provide a new value.");
+    return;
+  }
+
+  setIsSendingRequest(true);
+  
+  try {
+    const userEmail = user?.email || "Unknown User";
+    const changesList = selectedFields.map(f => 
+      `• ${f.label}: "${f.currentValue}" → "${f.newValue}"`
+    ).join("\n");
+
+    const message = `
+Dear Support Team,
+
+I, ${userEmail}, would like to request changes to my profile details.
+
+Fields to be changed:
+${changesList}
+
+${additionalNotes ? `\nAdditional Notes:\n${additionalNotes}` : ''}
+
+Please update these details at your earliest convenience.
+
+Regards,
+${userEmail}
+`;
+
+    // Format the email
+    const subject = encodeURIComponent("Request to change my details in profile");
+    const body = encodeURIComponent(message);
+    const mailtoLink = `mailto:Support@movementcreations.in?subject=${subject}&body=${body}`;
+
+    // Check if device can open mailto links
+    const canOpen = await Linking.canOpenURL(mailtoLink);
+    
+    if (canOpen) {
+      await Linking.openURL(mailtoLink);
+      Alert.alert(
+        "Request Sent", 
+        "Your email client has been opened. Please send the email to complete your request.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setShowRequestModal(false);
+              setAdditionalNotes("");
+              setChangeFields(prev => prev.map(f => ({ ...f, selected: false, newValue: "" })));
+            }
+          }
+        ]
+      );
+    } else {
+      // Fallback: Copy to clipboard
+      const fullMessage = `Subject: ${subject}\n\n${message}`;
+      await Clipboard.setString(fullMessage);
+      Alert.alert(
+        "Email Client Not Found", 
+        "Your device doesn't support email links. The request details have been copied to your clipboard. Please manually send an email to Support@movementcreations.in",
+        [
+          {
+            text: "Copy to Clipboard",
+            onPress: async () => {
+              await Clipboard.setString(fullMessage);
+              Alert.alert("Copied!", "Request details copied to clipboard.");
+            }
+          },
+          { text: "Cancel", style: "cancel" }
+        ]
+      );
+    }
+  } catch (error) {
+    Alert.alert("Error", "Failed to send request. Please try again.");
+  } finally {
+    setIsSendingRequest(false);
+  }
+};
+
 
   const fetchProfile = useCallback(async (userId: string) => {
     setIsLoading(true);
@@ -235,13 +381,13 @@ export default function ProfilePage() {
           ? String(mergedData.contract_end_date).split("T")[0]
           : "",
         company_labels: labels.map((l: any) =>
-          typeof l === "string"
-            ? { id: crypto.randomUUID(), name: l }
-            : {
-                id: l.id || crypto.randomUUID(),
-                name: l.name || "",
-              }
-        ),
+  typeof l === "string"
+    ? { id: generateId(), name: l }
+    : {
+        id: l.id || generateId(),
+        name: l.name || "",
+      }
+),
       });
     } catch (err) {
       Alert.alert("Error", err instanceof Error ? err.message : "Failed to load profile");
@@ -299,16 +445,16 @@ export default function ProfilePage() {
       Alert.alert("Plan Limit", `Your plan allows only ${limit} label(s)`);
       return;
     }
-    setProfile((prev) => ({
-      ...prev,
-      company_labels: [
-        ...prev.company_labels,
-        {
-          id: crypto.randomUUID(),
-          name: "",
-        },
-      ],
-    }));
+ setProfile((prev) => ({
+  ...prev,
+  company_labels: [
+    ...prev.company_labels,
+    {
+      id: generateId(),
+      name: "",
+    },
+  ],
+}));
   };
 
   const handleFieldChange = (field: string, lockable: boolean | undefined, value: string) => {
@@ -520,25 +666,37 @@ export default function ProfilePage() {
 }}
             showsVerticalScrollIndicator={false}
           >
-            {/* ── HEADER ── */}
-            <View className="flex-row items-start justify-between">
-              <View className="flex-row items-center gap-2 flex-1">
-                <UserCircle size={34} color={ACCENT} />
-<Text className="text-3xl font-bold text-slate-900">
-  My Profile
-</Text>
-              </View>
-            </View>
-            <Text className="text-base text-slate-500 mt-1">
-              Manage your personal, business, and security information.
-            </Text>
+{/* ── HEADER ── */}
+<View className="flex-row items-start justify-between">
+  {/* Left Side */}
+  <View className="flex-row items-center gap-2 flex-1">
+    <UserCircle size={34} color={ACCENT} />
+    <Text className="text-3xl font-bold text-slate-900">
+      My Profile
+    </Text>
+  </View>
 
-            <TouchableOpacity onPress={() => setShowConfirmDialog(true)} activeOpacity={0.85} className="mt-4 self-start">
-              <View className="flex-row items-center gap-2 rounded-xl px-5 py-2.5" style={{ backgroundColor: ACCENT }}>
-                <Save size={15} color="#fff" />
-                <Text className="text-white text-base font-semibold">Save Profile</Text>
-              </View>
-            </TouchableOpacity>
+  {/* Right Side */}
+  <TouchableOpacity
+    onPress={() => setShowConfirmDialog(true)}
+    activeOpacity={0.85}
+  >
+    <View
+      className="flex-row items-center gap-2 rounded-xl px-2 py-2"
+      style={{ backgroundColor: ACCENT }}
+    >
+      <Save size={15} color="#fff" />
+      <Text className="text-white text-sm font-semibold">
+        Save Profile
+      </Text>
+    </View>
+  </TouchableOpacity>
+</View>
+
+<Text className="text-base text-slate-500 mt-1">
+  Manage your personal, business, and security information.
+</Text>
+
 
             {/* ── TABS ── */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 18 }}>
@@ -572,7 +730,16 @@ export default function ProfilePage() {
                 </View>
               )}
 
-              {activeTab === "management" && <ManagementTab profile={profile} onChange={handleFieldChange} />}
+              {activeTab === "management" && (
+  <ManagementTab 
+    profile={profile} 
+    onChange={handleFieldChange}
+    onRequestChanges={() => {
+      initializeChangeFields();
+      setShowRequestModal(true);
+    }}
+  />
+)}
 
               {activeTab === "password" && (
                 <PasswordTab
@@ -638,6 +805,115 @@ export default function ProfilePage() {
           </View>
         </View>
       </Modal>
+
+            {/* ── REQUEST CHANGES MODAL ── */}
+<Modal 
+  visible={showRequestModal} 
+  animationType="slide" 
+  transparent 
+  onRequestClose={() => setShowRequestModal(false)}
+>
+  <View className="flex-1 bg-black/50 items-center justify-center px-4">
+    <View className="w-full max-w-md max-h-[80%] bg-white rounded-3xl border border-slate-200 shadow-2xl p-6">
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-xl font-bold text-slate-900">Request Profile Changes</Text>
+        <TouchableOpacity onPress={() => setShowRequestModal(false)}>
+          <XCircle size={24} color="#94a3b8" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView className="max-h-[60%]">
+        <Text className="text-sm text-slate-600 mb-4">
+          Select the fields you want to change and enter the new values:
+        </Text>
+
+        {changeFields.map((field, index) => (
+          <View key={`${field.key}-${index}`} className="mb-4 p-3 rounded-lg border border-slate-200">
+            <View className="flex-row items-center gap-2 mb-2">
+              <TouchableOpacity
+                onPress={() => {
+                  setChangeFields(prev => 
+                    prev.map((f, i) => 
+                      i === index ? { ...f, selected: !f.selected } : f
+                    )
+                  );
+                }}
+                className="w-5 h-5 rounded border flex items-center justify-center"
+                style={{ 
+                  borderColor: field.selected ? ACCENT : '#cbd5e1',
+                  backgroundColor: field.selected ? ACCENT : 'transparent'
+                }}
+              >
+                {field.selected && <CheckCircle size={14} color="#fff" />}
+              </TouchableOpacity>
+              <Text className="flex-1 text-sm font-medium text-slate-700">
+                {field.label}
+              </Text>
+            </View>
+            
+            <Text className="text-xs text-slate-500 mb-1.5">
+              Current: {field.currentValue || "Not set"}
+            </Text>
+            
+            {field.selected && (
+              <TextInput
+                value={field.newValue}
+                onChangeText={(text) => {
+                  setChangeFields(prev => 
+                    prev.map((f, i) => 
+                      i === index ? { ...f, newValue: text } : f
+                    )
+                  );
+                }}
+                placeholder="Enter new value"
+                placeholderTextColor="#cbd5e1"
+                className="rounded-lg px-3 py-2 text-base border border-slate-300 bg-white text-slate-900"
+              />
+            )}
+          </View>
+        ))}
+
+        {/* Additional Notes */}
+        <View className="mb-4">
+          <Text className="text-sm font-medium text-slate-700 mb-1.5">Additional Notes</Text>
+          <TextInput
+            value={additionalNotes}
+            onChangeText={setAdditionalNotes}
+            placeholder="Any additional information for the support team..."
+            placeholderTextColor="#cbd5e1"
+            multiline
+            numberOfLines={3}
+            className="rounded-lg px-3 py-2 text-base border border-slate-300 bg-white text-slate-900 min-h-[80px]"
+          />
+        </View>
+      </ScrollView>
+
+      <View className="flex-row gap-3 mt-4">
+        <TouchableOpacity
+          onPress={() => setShowRequestModal(false)}
+          className="flex-1 items-center px-4 py-2.5 rounded-xl border border-slate-200"
+        >
+          <Text className="text-slate-600 text-base font-medium">Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleSendChangeRequest}
+          disabled={isSendingRequest}
+          className="flex-1 items-center px-4 py-2.5 rounded-xl flex-row justify-center gap-2"
+          style={{ backgroundColor: ACCENT }}
+        >
+          {isSendingRequest ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Mail size={16} color="#fff" />
+              <Text className="text-white text-base font-semibold">Send Request</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
     </LinearGradient>
   );
 }
@@ -645,19 +921,20 @@ export default function ProfilePage() {
 /* ─────────────────────────────────────────
    SUBCOMPONENTS
 ───────────────────────────────────────── */
-
 function ProfileField({
   label,
   value,
   lockable,
+  readOnly = false, // Add this prop
   onChangeText,
 }: {
   label: string;
   value: string;
   lockable?: boolean;
+  readOnly?: boolean; // Add this type
   onChangeText: (v: string) => void;
 }) {
-  const disabled = !!lockable && !!value && value.trim() !== "";
+  const disabled = readOnly || (!!lockable && !!value && value.trim() !== "");
   return (
     <View className="mb-4">
       <View className="flex-row items-center gap-1.5 mb-1.5">
@@ -677,13 +954,14 @@ function ProfileField({
       {disabled && (
         <View className="flex-row items-center gap-1 mt-1">
           <Lock size={10} color="#94a3b8" />
-          <Text className="text-[11px] text-slate-400">This field cannot be changed once set</Text>
+          <Text className="text-[11px] text-slate-400">
+            {readOnly ? "This field is read-only" : "This field cannot be changed once set"}
+          </Text>
         </View>
       )}
     </View>
   );
 }
-
 function ProfileSection({
   title,
   fields,
@@ -710,13 +988,14 @@ function ProfileSection({
     </View>
   );
 }
-
 function ManagementTab({
   profile,
   onChange,
+  onRequestChanges, // Add this prop
 }: {
   profile: ProfileState;
   onChange: (field: string, lockable: boolean | undefined, value: string) => void;
+  onRequestChanges: () => void; // Add this
 }) {
   const today = new Date();
   const endDate = profile.contract_end_date ? new Date(profile.contract_end_date) : null;
@@ -751,7 +1030,7 @@ function ManagementTab({
           </View>
         </View>
         <View className="flex-1 rounded-xl border border-slate-200 bg-white p-4">
-          <Text className="text-xs text-slate-500 mb-2">Contract Status</Text>
+          <Text className="text-xs text-slate-500 mb-2">Plan Status</Text>
           <View className={`self-start px-2.5 py-1 rounded-full ${statusStyle.split(" ")[0]}`}>
             <Text className={`text-xs font-semibold ${statusStyle.split(" ")[1]}`}>{status}</Text>
           </View>
@@ -761,13 +1040,28 @@ function ManagementTab({
       <ProfileField
         label="Plan Start Date"
         value={profile.contract_start_date}
+        readOnly={true}
         onChangeText={(v) => onChange("contract_start_date", false, v)}
       />
       <ProfileField
         label="Plan End Date"
         value={profile.contract_end_date}
+        readOnly={true}
         onChangeText={(v) => onChange("contract_end_date", false, v)}
       />
+
+      {/* Add Request Changes Button */}
+      <TouchableOpacity
+        onPress={onRequestChanges}
+        className="flex-row items-center justify-center gap-2 rounded-xl px-5 py-3 mt-4"
+        style={{ backgroundColor: ACCENT }}
+      >
+        <Mail size={18} color="#fff" />
+        <Text className="text-white text-base font-semibold">Request Changes</Text>
+      </TouchableOpacity>
+      <Text className="text-xs text-slate-500 text-center mt-2">
+        Request changes to any profile field by emailing support
+      </Text>
     </View>
   );
 }
@@ -935,6 +1229,8 @@ function MusicLabelsTab({
           You've reached the limit of {limit} labels for your current plan
         </Text>
       )}
+
+
     </View>
   );
 }
