@@ -15,12 +15,12 @@ import {
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   RefreshControl,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { BarChart, LineChart, PieChart } from "react-native-gifted-charts";
@@ -40,9 +40,6 @@ const ACCENT = {
   amber: "#f59e0b",
   violet: "#8b5cf6",
 };
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const CHART_WIDTH = SCREEN_WIDTH - 32 - 32; // screen padding + card padding
-
 function formatNumber(n: number, decimals = 0) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
@@ -50,6 +47,9 @@ function formatNumber(n: number, decimals = 0) {
 }
 
 export default function ReportsPage() {
+  const { width: screenWidth } = useWindowDimensions();
+  const CHART_WIDTH = screenWidth - 32 - 32; // screen padding + card padding
+
   const [searchTerm, setSearchTerm] = useState("");
   const [searchReports, setSearchReports] = useState("");
   const [selectedReleases, setSelectedReleases] = useState<string[]>([]);
@@ -752,10 +752,11 @@ function StatCard({
   sub: string;
   color: string;
 }) {
+  const { width: screenWidth } = useWindowDimensions();
   return (
     <View
       className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-      style={{ width: (SCREEN_WIDTH - 32 - 12) / 2 }}
+      style={{ width: (screenWidth - 32 - 12) / 2 }}
     >
       <View
         className="w-9 h-9 rounded-xl items-center justify-center mb-2"
@@ -1121,4 +1122,5 @@ function ScatterInsightChart({
       ))}
     </Svg>
   );
-}
+}                                                                            
+

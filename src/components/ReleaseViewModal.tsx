@@ -28,7 +28,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Image,
   LayoutAnimation,
   Linking,
@@ -38,13 +37,12 @@ import {
   Share,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { apiClient } from "@/lib/apiClient";
 // ⚠️ adjust this import to wherever getSubgenreLabel actually lives in the RN app
 import { getSubgenreLabel } from "@/lib/genres-subgenres";
-
-const SCREEN_W = Dimensions.get("window").width;
 
 // ── Helpers ──
 function formatDuration(secs?: number | null) {
@@ -372,6 +370,7 @@ export default function ReleaseViewModal({
   isSuperAdmin?: boolean;
   isAdmin?: boolean;
 }) {
+  const { width: SCREEN_W } = useWindowDimensions();
   const [tracks, setTracks] = useState<any[]>([]);
   const [tracksLoading, setTracksLoading] = useState(false);
   const [sharing, setSharing] = useState(false);

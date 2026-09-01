@@ -11,7 +11,9 @@ import {
   PhoneOutgoing,
   Search,
   Sparkles,
-  Trash2
+  Trash2,
+  Video,
+  X,
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
@@ -39,6 +41,7 @@ const TAB_CONFIG: { value: "all" | ReleaseType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "audio", label: "Audio" },
   { value: "ringtone", label: "Ringtone" },
+    { value: "video", label: "Video" },
 ];
 
 const STATUS_STYLES: Record<Release["status"], { bg: string; text: string }> = {
@@ -51,6 +54,7 @@ const STATUS_STYLES: Record<Release["status"], { bg: string; text: string }> = {
 const TYPE_ICON: Record<ReleaseType, any> = {
   audio: Music,
   ringtone: PhoneOutgoing,
+  video: Video,
 };
 
 export default function ReleasePage() {
@@ -61,7 +65,7 @@ export default function ReleasePage() {
   const [viewingRelease, setViewingRelease] = useState<Release | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [loginPromptVisible, setLoginPromptVisible] = useState(false);
-const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone">("audio");
+const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone" | "video">("audio");
   /* ── live data from backend ── */
   const { releases, loading, error, refetch } = useReleasesData(activeTab);
 
@@ -90,6 +94,7 @@ const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone">("au
   const counts = {
     audio: releases.filter((r) => r.release_type === "audio").length,
     ringtone: releases.filter((r) => r.release_type === "ringtone").length,
+    video: releases.filter((r) => r.release_type === "video").length,
   };
 
   const handleTabPress = (tab: "all" | ReleaseType) => {
@@ -198,6 +203,19 @@ const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone">("au
     setLoginPromptVisible(true);
   }}
 />
+
+<CreateActionCard
+  title="New Video"
+  description="Music videos, lyric videos"
+  icon={Video}
+  count={counts.video}
+  colors={["#6366f1", "#8b5cf6", "#a855f7"]}
+  onPress={() => {
+    setLoginPromptType("video");
+    setLoginPromptVisible(true);
+  }}
+/>
+
 
 <CreateActionCard
   title="New Ringtone"
@@ -428,8 +446,10 @@ const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone">("au
         <TouchableOpacity
           onPress={() => setLoginPromptVisible(false)}
           className="p-1"
+          accessibilityRole="button"
+          accessibilityLabel="Close"
         >
-        
+          <X size={20} color="#94a3b8" />
         </TouchableOpacity>
       </View>
 
@@ -445,10 +465,18 @@ const [loginPromptType, setLoginPromptType] = useState<"audio" | "ringtone">("au
         <TouchableOpacity
           onPress={() => setLoginPromptVisible(false)}
           className="flex-1 items-center justify-center rounded-xl border border-slate-200 py-3"
+          accessibilityRole="button"
         >
           <Text className="text-slate-600 font-medium">Cancel</Text>
         </TouchableOpacity>
-        
+        <TouchableOpacity
+          onPress={() => setLoginPromptVisible(false)}
+          className="flex-1 items-center justify-center rounded-xl py-3"
+          style={{ backgroundColor: ACCENT }}
+          accessibilityRole="button"
+        >
+          <Text className="text-white font-medium">Got it</Text>
+        </TouchableOpacity>
       </View>
     </View>
   </View>

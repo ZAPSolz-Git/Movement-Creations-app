@@ -7,8 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "../lib/apiClient";
-
-export type ReleaseType = "audio" | "ringtone";
+export type ReleaseType = "audio" | "ringtone" | "video";
 export type ReleaseStatus = "Live" | "Draft" | "Review" | "Rejected";
 
 export interface Release {
@@ -32,7 +31,7 @@ const FALLBACK_COVER =
 function normalizeReleaseType(raw: unknown): ReleaseType | null {
   const normalized = String(raw || "").toLowerCase();
   if (normalized === "ringtone") return "ringtone";
-  if (normalized === "video") return null; // excluded
+  if (normalized === "video") return "video"; // excluded
   if (
     normalized === "audio" ||
     normalized === "single" ||
